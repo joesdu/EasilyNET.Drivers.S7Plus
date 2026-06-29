@@ -16,7 +16,7 @@ internal sealed partial class S7CommPlusConnection
     // * this into the complete library!               *
     // *************************************************
 
-    private Dictionary<uint, PlcTag> m_SubscribedTags; // ItemRefId
+    private Dictionary<uint, PlcTag> m_SubscribedTags = []; // ItemRefId
     private readonly byte m_SubcriptionChangeCounter = 1;
     private readonly uint m_SubscriptionRelationId = 0x7fffc001; // TODO! Unknown value!0x7fffc001. Seems to be a startvalue, increases on next CreateObject. Guess: It's stored in the plc under this id.
     private short m_NextCreditLimit;
@@ -27,6 +27,7 @@ internal sealed partial class S7CommPlusConnection
     /// </summary>
     /// <param name="plcTags">The list of tags to add to the subscription</param>
     /// <param name="cycleTime">Cycle time for update in milliseconds. Lowest value seems to be 100 ms (if it's not dependant on the CPU).</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns></returns>
     public async Task<int> SubscriptionCreateAsync(List<PlcTag> plcTags, ushort cycleTime, CancellationToken ct = default)
     {

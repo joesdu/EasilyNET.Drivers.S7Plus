@@ -13,7 +13,7 @@ namespace EasilyNET.Drivers.S7Plus;
 internal sealed partial class S7CommPlusConnection
 {
 
-    private byte[] omsSecret;
+    private byte[]? omsSecret;
 
     /// <summary>
     /// Legitimation stage of the connect routine
@@ -21,6 +21,7 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="serverSession">Server sesstion information containing the firmware version</param>
     /// <param name="password">PLC password</param>
     /// <param name="username">PLC username (leave empty for legacy login)</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>error code (0 = ok)</returns>
     private async Task<int> LegitimateAsync(ValueStruct serverSession, string password, string username = "", CancellationToken ct = default)
     {
@@ -141,7 +142,7 @@ internal sealed partial class S7CommPlusConnection
         }
 
         // Check access level
-        var accessLevel = (getVarSubstreamedRes.Value as ValueUDInt).GetValue();
+        var accessLevel = (getVarSubstreamedRes.Value as ValueUDInt)!.GetValue();
         if (accessLevel > AccessLevel.FullAccess && !string.IsNullOrEmpty(password))
         {
             // Legitimate
@@ -156,10 +157,11 @@ internal sealed partial class S7CommPlusConnection
     }
 
     /// <summary>
-    /// Legitimate using the new login method (firmware >= 3.1)
+    /// Legitimate using the new login method (firmware &gt;= 3.1)
     /// </summary>
     /// <param name="password">PLC password</param>
     /// <param name="username">PLC username (leave empy for legacy login)</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>error code (0 = ok)</returns>
     private async Task<int> LegitimateNewAsync(string password, string username = "", CancellationToken ct = default)
     {
@@ -192,7 +194,7 @@ internal sealed partial class S7CommPlusConnection
             return S7Consts.errIsoInvalidPDU;
         }
 
-        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray).GetValue();
+        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray)!.GetValue();
 
         // Encrypt challengeResponse
         byte[] challengeResponse;
@@ -200,6 +202,12 @@ internal sealed partial class S7CommPlusConnection
         {
             // Create oms exporter secret
             omsSecret = m_client.GetOMSExporterSecret();
+        }
+        if (omsSecret == null)
+        {
+            log.LogDebug("S7CommPlusConnection - Legitimate: OMS exporter secret unavailable!");
+            m_client.Disconnect();
+            return S7Consts.errIsoInvalidPDU;
         }
         // Roll key
         var key = LegitimationCrypto.Sha256(omsSecret);
@@ -287,9 +295,10 @@ internal sealed partial class S7CommPlusConnection
     }
 
     /// <summary>
-    /// Legitimate using the old legacy login (firmware version < 3.1)
+    /// Legitimate using the old legacy login (firmware version &lt; 3.1)
     /// </summary>
     /// <param name="password">PLC password</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>error code (0 = OK)</returns>
     private async Task<int> LegitimateLegacyAsync(string password, CancellationToken ct = default)
     {
@@ -323,7 +332,7 @@ internal sealed partial class S7CommPlusConnection
             return S7Consts.errIsoInvalidPDU;
         }
 
-        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray).GetValue();
+        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray)!.GetValue();
 
         // Calculate challengeResponse [sha1(password) xor challenge]
         byte[] challengeResponse;

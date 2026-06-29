@@ -23,14 +23,14 @@ namespace EasilyNET.Drivers.S7Plus;
 /// <remarks>
 ///     <b>自上而下的真异步实现</b>：从底层 socket 收发（<c>Socket.*Async</c>）、TLS 密文泵、ISO 帧组装，到
 ///     S7CommPlus 请求-响应等待，全链路均为真正的 <c>await</c>——无后台线程、无忙等待轮询、无 <c>Task.Run</c> 包装。
-///     接收由单个异步“接收泵”驱动，响应通过异步信号量交付，<see cref=”CancellationToken” /> 贯穿全程可随时取消。
+///     接收由单个异步“接收泵”驱动，响应通过异步信号量交付，<see cref="CancellationToken" /> 贯穿全程可随时取消。
 ///     所有 I/O（连接/读/写/断开）通过同一异步信号量串行化，可安全地从多个调用方并发 <c>await</c>（自动排队），
 ///     避免同一连接上的并发请求导致协议序列号错乱。
-///     <para xml:lang=”en”>
+///     <para xml:lang="en">
 ///         Genuine end-to-end async: from socket I/O (<c>Socket.*Async</c>), the TLS ciphertext pump and ISO framing,
 ///         up to S7CommPlus request/response waiting — everything is real <c>await</c>, with no background thread,
 ///         no busy-wait polling and no <c>Task.Run</c> wrapping. A single async receive pump drives reception,
-///         responses are delivered via an async semaphore, and the <see cref=”CancellationToken” /> flows throughout.
+///         responses are delivered via an async semaphore, and the <see cref="CancellationToken" /> flows throughout.
 ///         All I/O is serialized through one async semaphore, so the client is safe to <c>await</c> from multiple
 ///         callers concurrently (they queue), preventing protocol sequence-number corruption on one connection.
 ///     </para>
@@ -334,7 +334,7 @@ public sealed class S7PlusClient : IAsyncDisposable
             if (errors is not null && i < errors.Count && errors[i] == 0 &&
                 values is not null && i < values.Count && values[i] is not null)
             {
-                strValue = FormatValue(tagList[i], values[i]);
+                strValue = FormatValue(tagList[i], values[i]!);
             }
             result.Add(new(requested[i], strValue, strValue is not null, now));
         }

@@ -30,7 +30,7 @@ internal sealed class SetMultiVariablesResponse(byte protocolVersion) : IS7pResp
         {
             ret += S7p.DecodeUInt64Vlq(buffer, out var retval);
             ErrorValues.Add(itemnr, retval);
-            ret += S7p.DecodeUInt32Vlq(buffer, out itemnr); /// TODO: Is this correct?
+            ret += S7p.DecodeUInt32Vlq(buffer, out itemnr); // TODO: Is this correct?
         }
         ret += S7p.DecodeUInt32Vlq(buffer, out var iid);
         IntegrityId = iid;

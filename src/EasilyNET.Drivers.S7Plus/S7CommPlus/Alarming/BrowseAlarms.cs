@@ -11,18 +11,19 @@ internal sealed partial class S7CommPlusConnection
 {
     /// <summary>
     /// Explores the AS and the User program alarms, gets the corresponding texts usind the language id (e.g.1031 = de-DE)
-    /// 
-    /// Call example:
+    /// <code>
     /// CultureInfo ci = new CultureInfo("de-DE");
-    /// Dictionary<ulong, AlarmData> Alarms = new Dictionary<ulong, AlarmData>();
+    /// Dictionary&lt;ulong, AlarmData&gt; Alarms = new Dictionary&lt;ulong, AlarmData&gt;();
     /// conn.ExploreASAlarms(ref Alarms, ci.LCID);
     /// foreach (var al in Alarms)
     /// {
     ///     log.LogDebug(al.Value.ToString());
     /// }
+    /// </code>
     /// </summary>
-    /// <param name="Alarms">Dictionary <ulong, AlarmData> where the results are written to. Key is used as address.</param>
+    /// <param name="Alarms">Dictionary &lt;ulong, AlarmData&gt; where the results are written to. Key is used as address.</param>
     /// <param name="languageId">Language id for retrieving the text entries, use language code e.g. 1031 for german</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns></returns>
     public async Task<int> ExploreASAlarmsAsync(Dictionary<ulong, AlarmData> Alarms, int languageId, CancellationToken ct = default)
     {
@@ -333,19 +334,19 @@ internal sealed partial class S7CommPlusConnection
 
     /// <summary>
     /// Reads the active program alarms from the Plc (single poll).
-    /// 
-    /// Call example:
+    /// <code>
     /// CultureInfo ci = new CultureInfo("de-DE");
-    /// var alarmList = new List<AlarmsDai>();
+    /// var alarmList = new List&lt;AlarmsDai&gt;();
     /// conn.GetActiveAlarms(out alarmList, ci.LCID);
     /// foreach (var a in alarmList)
     /// {
     ///     log.LogDebug(a.ToString());
     /// }
+    /// </code>
     /// </summary>
-    /// <param name="alarmList">Contains the alarms, empty if there is no active alarm</param>
     /// <param name="languageId">Language id for retrieving the text entries, use language code e.g. 1031 for german</param>
-    /// <returns>0 on success</returns>
+    /// <param name="ct">cancellation token</param>
+    /// <returns>0 on success, plus the alarm list (empty if there is no active alarm)</returns>
     internal async Task<(int res, List<AlarmsDai> alarmList)> GetActiveAlarmsAsync(int languageId, CancellationToken ct = default)
     {
         int res;

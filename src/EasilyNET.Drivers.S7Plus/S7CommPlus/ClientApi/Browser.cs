@@ -96,7 +96,7 @@ internal sealed class Browser
                 }
                 else
                 {
-                    info.OptAddress = OptOffset + node.Vte.OffsetInfoType.OptimizedAddress;
+                    info.OptAddress = OptOffset + node.Vte.OffsetInfoType!.OptimizedAddress;
                     info.NonOptAddress = NonOptOffset + node.Vte.OffsetInfoType.NonoptimizedAddress;
                 }
                 // Special case #1:
@@ -135,7 +135,7 @@ internal sealed class Browser
                 {
                     case eNodeType.Array:
                         // This is an array element of basic datatype. Offset comes from fixed size multiplied by array index.
-                        OptOffset = node.Vte.OffsetInfoType.OptimizedAddress;
+                        OptOffset = node.Vte.OffsetInfoType!.OptimizedAddress;
                         NonOptOffset = node.Vte.OffsetInfoType.NonoptimizedAddress;
                         break;
                     case eNodeType.StructArray:
@@ -146,7 +146,7 @@ internal sealed class Browser
                     case eNodeType.Root:
                     case eNodeType.Var:
                     default:
-                        OptOffset += node.Vte.OffsetInfoType.OptimizedAddress;
+                        OptOffset += node.Vte.OffsetInfoType!.OptimizedAddress;
                         NonOptOffset += node.Vte.OffsetInfoType.NonoptimizedAddress;
                         break;
                 }
@@ -211,7 +211,7 @@ internal sealed class Browser
 
                 node.Childs.Add(subnode);
                 // Process arrays. TODO: Put the processing to separate methods, to shorten this method.
-                if (vte.OffsetInfoType.Is1Dim())
+                if (vte.OffsetInfoType!.Is1Dim())
                 {
                     #region Struct/UDT or flat arrays with one dimension
                     var ioit = (IOffsetInfoType_1Dim)vte.OffsetInfoType;
@@ -412,7 +412,7 @@ internal sealed class Browser
             Softdatatype.S7COMMP_SOFTDATATYPE_TIME => 4,
             Softdatatype.S7COMMP_SOFTDATATYPE_S5TIME => 2,
             Softdatatype.S7COMMP_SOFTDATATYPE_DATEANDTIME => 8,
-            Softdatatype.S7COMMP_SOFTDATATYPE_STRING or Softdatatype.S7COMMP_SOFTDATATYPE_WSTRING => vte.OffsetInfoType.Is1Dim()
+            Softdatatype.S7COMMP_SOFTDATATYPE_STRING or Softdatatype.S7COMMP_SOFTDATATYPE_WSTRING => vte.OffsetInfoType!.Is1Dim()
                                 ? ((POffsetInfoType_Array1Dim)vte.OffsetInfoType).UnspecifiedOffsetinfo1 + (uint)2
                                 : ((POffsetInfoType_ArrayMDim)vte.OffsetInfoType).UnspecifiedOffsetinfo1 + (uint)2,// TODO:
                                                                                                                    // If an array of String or WString, offsetinfo1 is the string length.

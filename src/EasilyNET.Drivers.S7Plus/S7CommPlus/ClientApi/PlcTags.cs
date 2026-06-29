@@ -20,7 +20,7 @@ internal static class PlcTags
             var idx = 0;
             foreach (var tag in plcTags)
             {
-                tag.ProcessReadResult(values[idx], errors[idx]);
+                tag.ProcessReadResult(values[idx]!, errors[idx]);
                 idx++;
             }
         }

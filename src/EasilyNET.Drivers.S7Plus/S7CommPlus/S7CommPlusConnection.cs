@@ -16,9 +16,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 {
     #region Private Members
     private readonly ILogger log;
-    private S7Client m_client;
-    private MemoryStream m_ReceivedPDU;
-    private MemoryStream m_ReceivedTempPDU;
+    private S7Client m_client = null!;          // 在 ConnectAsync 中创建后整个连接生命周期内有效
+    private MemoryStream m_ReceivedPDU = null!;  // 由接收泵在收到完整 PDU 后赋值
+    private MemoryStream m_ReceivedTempPDU = null!;
     private readonly Queue<MemoryStream> m_ReceivedPDUs = new();
     // 接收队列的快速同步锁 + 可用信号量（异步等待响应，取代原 Mutex + Thread.Sleep 忙等待）
     private readonly Lock m_pduLock = new();
@@ -36,7 +36,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     private uint m_IntegrityId_Set;
     private readonly CommRessources m_CommRessources = new();
 
-    private List<DatablockInfo> dbInfoList;
+    private List<DatablockInfo>? dbInfoList;
     private readonly List<PObject> typeInfoList = [];
 
     // 注：原先用可重入 Monitor 把"发送→等待→反序列化"串行化以防轮询/写线程交错。
@@ -281,7 +281,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 m_NewS7CommPlusReceived = false;
 
                 var sysevt = SystemEvent.DeserializeFromPdu(m_ReceivedTempPDU);
-                if (sysevt.IsFatalError())
+                if (sysevt?.IsFatalError() == true)
                 {
                     log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent has fatal error");
                     // Termination neccessary：置错误并唤醒等待者（无 PDU 入队）
@@ -376,7 +376,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// </summary>
     /// <param name="address">PLC IP address</param>
     /// <param name="password">PLC password (if set)</param>
+    /// <param name="username">PLC username (leave empty for legacy login)</param>
     /// <param name="timeoutMs">read timeout in milliseconds (default: 5000 ms)</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns></returns>
     public async Task<int> ConnectAsync(string address, string password = "", string username = "", int timeoutMs = 5000, CancellationToken ct = default)
     {
@@ -466,12 +468,12 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
         // There are (always?) at least two IDs in the response.
         // Usually the first is used for polling data, and the 2nd for jobs which use notifications, e.g. alarming, subscriptions.
-        m_SessionId = createObjRes.ObjectIds[0];
+        m_SessionId = createObjRes.ObjectIds![0];
         SessionId2 = createObjRes.ObjectIds[1];
         log.LogDebug("S7CommPlusConnection - Connect: Using SessionId=0x" + $"{m_SessionId:X04}");
 
         // Evaluate Struct 314
-        var sval = createObjRes.ResponseObject.GetAttribute(Ids.ServerSessionVersion);
+        var sval = createObjRes.ResponseObject!.GetAttribute(Ids.ServerSessionVersion);
         var serverSession = (ValueStruct)sval;
 
         #endregion
@@ -545,6 +547,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// Deletes the object with the given Id.
     /// </summary>
     /// <param name="deleteObjectId">The object Id to delete</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>0 on success</returns>
     private async Task<int> DeleteObjectAsync(uint deleteObjectId, CancellationToken ct = default)
     {
@@ -579,7 +582,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             {
                 return res;
             }
-            if (delObjRes.ReturnValue != 0)
+            if (delObjRes!.ReturnValue != 0)
             {
                 log.LogDebug($"S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={delObjRes.ReturnValue}");
                 res = -1;
@@ -588,11 +591,11 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         return res;
     }
 
-    public async Task<(int res, List<object> values, List<ulong> errors)> ReadValuesAsync(List<ItemAddress> addresslist, CancellationToken ct = default)
+    public async Task<(int res, List<object?> values, List<ulong> errors)> ReadValuesAsync(List<ItemAddress> addresslist, CancellationToken ct = default)
     {
         // The requester must pass the internal type with the request, otherwise not all return values can be converted automatically.
         // For example, strings are transmitted as UInt-Array.
-        var values = new List<object>();
+        var values = new List<object?>();
         var errors = new List<ulong>();
         // Initialize error fields to error value
         for (var i = 0; i < addresslist.Count; i++)
@@ -632,7 +635,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 return (res, values, errors);
             }
             // ReturnValue shows also an error, if only one single variable could not be read
-            if (getMultiVarRes.ReturnValue != 0)
+            if (getMultiVarRes!.ReturnValue != 0)
             {
                 log.LogDebug($"S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={getMultiVarRes.ReturnValue}");
             }
@@ -702,7 +705,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 return (res, errors);
             }
             // ReturnValue shows also an error, if only one single variable could not be written
-            if (setMultiVarRes.ReturnValue != 0)
+            if (setMultiVarRes!.ReturnValue != 0)
             {
                 log.LogDebug($"S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={setMultiVarRes.ReturnValue}");
             }
@@ -759,7 +762,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var varInfoList = new List<VarInfo>();
         var vars = new Browser();
         ExploreRequest exploreReq;
-        ExploreResponse exploreRes;
+        ExploreResponse? exploreRes;
 
         #region Read all objects
 
@@ -801,7 +804,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         #region Evaluate all data blocks that then need to be browsed
 
-        var obj = exploreRes.Objects.First(o => o.ClassId == Ids.PLCProgram_Class_Rid);
+        var obj = exploreRes!.Objects.First(o => o.ClassId == Ids.PLCProgram_Class_Rid);
 
         foreach (var ob in obj.GetObjects())
         {
@@ -833,7 +836,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         // This is neccessary because, for example, with instance DBs (e.g. TON), the type information must
         // not be accessed via the RID of the DB, but of the RID of the TON.
         var readlist = new List<ItemAddress>();
-        List<object> values;
+        List<object?> values;
         List<ulong> errors;
 
         foreach (var data in exploreData)
@@ -864,7 +867,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         {
             if (errors[i] == 0)
             {
-                var rid = (ValueRID)values[i];
+                var rid = (ValueRID)values[i]!;
                 var data = exploreData[i];
                 data.db_block_ti_relid = rid.GetValue();
                 exploreData[i] = data;
@@ -926,7 +929,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         {
             return (res, varInfoList);
         }
-        var objs = exploreRes.Objects.First(o => o.ClassId == Ids.ClassOMSTypeInfoContainer);
+        var objs = exploreRes!.Objects.First(o => o.ClassId == Ids.ClassOMSTypeInfoContainer);
 
         vars.SetTypeInfoContainerObjects(objs.GetObjects());
         vars.BuildTree();
@@ -937,18 +940,18 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         return (0, varInfoList);
     }
 
-    /// <summary>
-    /// Gets the first level of a tag symbol string. Removes the " used to escape special chars.
-    /// </summary>
-    /// <param name="symbol">plc tag symbol</param>
-    /// <returns>The first level of the symbol string</returns>
-    /// <exception cref="Exception">Symbol syntax error</exception>
     // 符号游标：替代异步方法中无法使用的 ref string，按引用语义在各级解析间传递与消费符号字符串。
     private sealed class SymbolRef(string value)
     {
         public string Value = value;
     }
 
+    /// <summary>
+    /// Gets the first level of a tag symbol string. Removes the " used to escape special chars.
+    /// </summary>
+    /// <param name="symbolRef">plc tag symbol</param>
+    /// <returns>The first level of the symbol string</returns>
+    /// <exception cref="Exception">Symbol syntax error</exception>
     private static string parseSymbolLevel(SymbolRef symbolRef)
     {
         var symbol = symbolRef.Value;
@@ -1010,6 +1013,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// it's fetched from the PLC and stored in the buffer.
     /// </summary>
     /// <param name="ti_relid">type info relid</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>type info</returns>
     /// <exception cref="Exception">Could not get type info</exception>
     internal async Task<PObject?> GetTypeInfoByRelIdAsync(uint ti_relid, CancellationToken ct = default)
@@ -1064,7 +1068,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         varInfo.AccessSequence += $".{arrayIndex - arrayLowerBounds:X}";
-        if (varType.OffsetInfoType.HasRelation())
+        if (varType.OffsetInfoType!.HasRelation())
         {
             varInfo.AccessSequence += ".1"; // additional ".1" for array of struct
         }
@@ -1089,9 +1093,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var idxs = m.Groups[1].Value.Replace(" ", "", StringComparison.InvariantCulture);
 
         var indexes = Array.ConvertAll(idxs.Split(','), e => int.Parse(e, CultureInfo.InvariantCulture));
-        var ioit = varType.OffsetInfoType as IOffsetInfoType_MDim;
-        var MdimArrayElementCount = ioit?.GetMdimArrayElementCount().Clone() as uint[];
-        var MdimArrayLowerBounds = ioit?.GetMdimArrayLowerBounds();
+        var ioit = (IOffsetInfoType_MDim)varType.OffsetInfoType!;
+        var MdimArrayElementCount = (uint[])ioit.GetMdimArrayElementCount().Clone();
+        var MdimArrayLowerBounds = ioit.GetMdimArrayLowerBounds();
 
         // check dim count
         var dimCount = MdimArrayElementCount.Aggregate(0, (acc, act) => acc += (act > 0) ? 1 : 0);
@@ -1136,7 +1140,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         varInfo.AccessSequence += $".{arrayIndex:X}";
-        if (varType.OffsetInfoType.HasRelation())
+        if (varType.OffsetInfoType!.HasRelation())
         {
             varInfo.AccessSequence += ".1"; // additional ".1" for array of struct
         }
@@ -1148,6 +1152,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// <param name="ti_relid">type info relid</param>
     /// <param name="symbol">plc tag symbol</param>
     /// <param name="varInfo">used to build access sequence</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>plc tag or null if not found</returns>
     /// <exception cref="Exception">Symbol syntax error, Out of bounds</exception>
     private async Task<PlcTag?> BrowsePlcTagBySymbolAsync(uint ti_relid, SymbolRef symbol, VarInfo varInfo, CancellationToken ct = default)
@@ -1161,10 +1166,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             return null;
         }
 
-        var varType = pObj.VartypeList.Elements[idx];
+        var varType = pObj.VartypeList!.Elements[idx];
         varInfo.AccessSequence += $".{varType.LID:X}";
         var is1Dim = false;
-        if (varType.OffsetInfoType.Is1Dim())
+        if (varType.OffsetInfoType!.Is1Dim())
         {
             if (string.IsNullOrEmpty(symbol.Value))
             {
@@ -1179,7 +1184,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         {
             CalcAccessSeqForMDimArray(symbol, varType, varInfo);
         }
-        if (varType.OffsetInfoType.HasRelation())
+        if (varType.OffsetInfoType!.HasRelation())
         {
             if (symbol.Value.Length <= 0 && varType.Softdatatype == Softdatatype.S7COMMP_SOFTDATATYPE_DTL)
             {
@@ -1205,6 +1210,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// Get the plc tag for the given plc tag symbol. 
     /// </summary>
     /// <param name="symbol">plc tag symbol</param>
+    /// <param name="ct">cancellation token</param>
     /// <returns>plc tag, returns null if plc tag could not be found</returns>
     public async Task<PlcTag?> GetPlcTagBySymbolAsync(string symbol, CancellationToken ct = default)
     {
@@ -1335,7 +1341,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         // Get the datablock information we want further informations from.
-        var objList = exploreRes.Objects;
+        var objList = exploreRes!.Objects;
 
         foreach (var ob in objList)
         {
@@ -1370,7 +1376,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         // This is neccessary, because informations about instance DBs (e.g. TON) you
         // don't get by the RID of the DB, instead of exploring the TON Type RID.
         var readlist = new List<ItemAddress>();
-        List<object> values;
+        List<object?> values;
         List<ulong> errors;
 
         foreach (var data in dbInfoList)
@@ -1398,7 +1404,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         {
             if (errors[i] == 0)
             {
-                var rid = (ValueRID)values[i];
+                var rid = (ValueRID)values[i]!;
                 var data = dbInfoList[i];
                 data.db_block_ti_relid = rid.GetValue();
                 dbInfoList[i] = data;
@@ -1451,7 +1457,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         {
             return (res, objList);
         }
-        objList = exploreRes.Objects;
+        objList = exploreRes!.Objects;
 
         return (0, objList);
     }
@@ -1460,19 +1466,23 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// Requests the tag and block comments from the Plc, returned as XML strings.
     /// xml_linecomment:
     /// The returned XML format differs between between request of I/Q/M/C/T areas and datablocks:
-    /// I/Q/M/C/T: <CommentDictionary>     <TagLineComments>      <Comment RefID="ID"> <DictEntry Lanuage="de-DE"> ....
-    /// Datablock: <InterfaceLineComments> <Part Kind="Comments"> <Comment Path="ID">  <DictEntry Lanuage="de-DE"> ....
+    /// <code>
+    /// I/Q/M/C/T: &lt;CommentDictionary&gt;     &lt;TagLineComments&gt;      &lt;Comment RefID="ID"&gt; &lt;DictEntry Lanuage="de-DE"&gt; ....
+    /// Datablock: &lt;InterfaceLineComments&gt; &lt;Part Kind="Comments"&gt; &lt;Comment Path="ID"&gt;  &lt;DictEntry Lanuage="de-DE"&gt; ....
+    /// </code>
     /// As "ID" the number for the variable identification is used.
-    /// 
+    /// <para>
     /// xml_dbcomment:
     /// The xml-value description generated from our own value xml-serialization for WStringSparseArray. The value key is the language id.
     /// Example:
-    /// <Value type ="WStringSparseArray"><Value key="1032">DB Kommentar in german de-DE</Value><Value key="1034">DB comment in english en-US</Value></Value>
+    /// <code>
+    /// &lt;Value type ="WStringSparseArray"&gt;&lt;Value key="1032"&gt;DB Kommentar in german de-DE&lt;/Value&gt;&lt;Value key="1034"&gt;DB comment in english en-US&lt;/Value&gt;&lt;/Value&gt;
+    /// </code>
+    /// </para>
     /// </summary>
     /// <param name="relid">The relation ID for the area you want the comments for, e.g. 0x8a0e0000+db_number, or 0x52 for M-area</param>
-    /// <param name="xml_linecomment"></param>
-    /// <param name="xml_dbcomment"></param>
-    /// <returns>0 if no error</returns>
+    /// <param name="ct">cancellation token</param>
+    /// <returns>0 if no error, plus the line-comment and db-comment XML strings</returns>
     public async Task<(int res, string xml_linecomment, string xml_dbcomment)> GetCommentsXmlAsync(uint relid, CancellationToken ct = default)
     {
         int res;
@@ -1513,7 +1523,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             return (res, xml_linecomment, xml_dbcomment);
         }
 
-        foreach (var obj in exploreRes.Objects)
+        foreach (var obj in exploreRes!.Objects)
         {
             foreach (var att in obj.Attributes)
             {

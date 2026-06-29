@@ -5,13 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>preview</LangVersion>
-    <!-- 协议层日志模板使用插值/拼接字符串（非常量），抑制结构化日志模板告警 -->
-    <NoWarn>$(NoWarn);CA2254;CA1031;CA2201</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
     <EnablePreviewFeatures>true</EnablePreviewFeatures>
-    <NoWarn>$(NoWarn);CA2252;SYSLIB5007</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -23,10 +20,6 @@
     <!-- 双许可：根 LICENSE 为声明 + 高层封装 MIT 全文；协议层 LGPL-3.0 全文随包附带 -->
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- S7CommPlus 协议层为移植代码（thomas-v2/S7CommPlusDriver, LGPL）：
-         其 XML 注释非规范、可空注解不完整，统一抑制以保持构建整洁。
-         CS1591 缺少文档注释 / CS1570,CS1573,CS1587 XML 注释格式 / CS86xx 可空引用 -->
-    <NoWarn>$(NoWarn);CS1591;CS1570;CS1572;CS1573;CS1587;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

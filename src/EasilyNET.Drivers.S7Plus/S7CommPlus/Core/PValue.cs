@@ -179,7 +179,8 @@ internal abstract class PValue : IS7pSerialize
                     throw new NotImplementedException();
             }
         }
-        return null;
+        // 未知/不支持的数据类型：与上面各分支的 default 处理保持一致，抛出而非返回 null
+        throw new NotImplementedException();
     }
 }
 
@@ -261,7 +262,7 @@ internal sealed class ValueBool : PValue
 /// </summary>
 internal sealed class ValueBoolArray : PValue
 {
-    bool[] Value;
+    bool[] Value = [];
 
     public ValueBoolArray(bool[] value) : this(value, FLAGS_ARRAY)
     {
@@ -371,7 +372,7 @@ internal sealed class ValueUSInt : PValue
 
 internal sealed class ValueUSIntArray : PValue
 {
-    byte[] Value;
+    byte[] Value = [];
 
     public ValueUSIntArray(byte[] value) : this(value, FLAGS_ARRAY)
     {
@@ -479,7 +480,7 @@ internal sealed class ValueUInt : PValue
 
 internal sealed class ValueUIntArray : PValue
 {
-    ushort[] Value;
+    ushort[] Value = [];
 
     public ValueUIntArray(ushort[] value) : this(value, FLAGS_ARRAY)
     {
@@ -595,7 +596,7 @@ internal sealed class ValueUDInt : PValue
 
 internal sealed class ValueUDIntArray : PValue
 {
-    uint[] Value;
+    uint[] Value = [];
 
     public ValueUDIntArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -672,7 +673,7 @@ internal sealed class ValueUDIntArray : PValue
 // E.g.: Reading 1037 (SystemLimits) via GetVarSubStreamed
 internal sealed class ValueUDIntSparseArray : PValue
 {
-    Dictionary<uint, uint> Value;
+    Dictionary<uint, uint> Value = [];
 
     public ValueUDIntSparseArray(Dictionary<uint, uint> value) : this(value, FLAGS_SPARSEARRAY)
     {
@@ -796,7 +797,7 @@ internal sealed class ValueULInt : PValue
 
 internal sealed class ValueULIntArray : PValue
 {
-    ulong[] Value;
+    ulong[] Value = [];
 
     public ValueULIntArray(ulong[] value) : this(value, FLAGS_ARRAY)
     {
@@ -910,7 +911,7 @@ internal sealed class ValueSInt : PValue
 
 internal sealed class ValueSIntArray : PValue
 {
-    sbyte[] Value;
+    sbyte[] Value = [];
 
     public ValueSIntArray(sbyte[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1019,7 +1020,7 @@ internal sealed class ValueInt : PValue
 
 internal sealed class ValueIntArray : PValue
 {
-    short[] Value;
+    short[] Value = [];
 
     public ValueIntArray(short[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1135,7 +1136,7 @@ internal sealed class ValueDInt : PValue
 
 internal sealed class ValueDIntArray : PValue
 {
-    int[] Value;
+    int[] Value = [];
 
     public ValueDIntArray(int[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1208,7 +1209,7 @@ internal sealed class ValueDIntArray : PValue
 
 internal sealed class ValueDIntSparseArray : PValue
 {
-    Dictionary<uint, int> Value;
+    Dictionary<uint, int> Value = [];
 
     public ValueDIntSparseArray(Dictionary<uint, int> value) : this(value, FLAGS_SPARSEARRAY)
     {
@@ -1332,7 +1333,7 @@ internal sealed class ValueLInt : PValue
 
 internal sealed class ValueLIntArray : PValue
 {
-    long[] Value;
+    long[] Value = [];
 
     public ValueLIntArray(long[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1445,7 +1446,7 @@ internal sealed class ValueByte : PValue
 
 internal sealed class ValueByteArray : PValue
 {
-    byte[] Value;
+    byte[] Value = [];
 
     public ValueByteArray(byte[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1553,7 +1554,7 @@ internal sealed class ValueWord : PValue
 
 internal sealed class ValueWordArray : PValue
 {
-    ushort[] Value;
+    ushort[] Value = [];
 
     public ValueWordArray(ushort[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1661,7 +1662,7 @@ internal sealed class ValueDWord : PValue
 
 internal sealed class ValueDWordArray : PValue
 {
-    uint[] Value;
+    uint[] Value = [];
 
     public ValueDWordArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1769,7 +1770,7 @@ internal sealed class ValueLWord : PValue
 
 internal sealed class ValueLWordArray : PValue
 {
-    ulong[] Value;
+    ulong[] Value = [];
 
     public ValueLWordArray(ulong[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1877,7 +1878,7 @@ internal sealed class ValueReal : PValue
 
 internal sealed class ValueRealArray : PValue
 {
-    float[] Value;
+    float[] Value = [];
 
     public ValueRealArray(float[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1985,7 +1986,7 @@ internal sealed class ValueLReal : PValue
 
 internal sealed class ValueLRealArray : PValue
 {
-    double[] Value;
+    double[] Value = [];
 
     public ValueLRealArray(double[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2126,7 +2127,7 @@ internal sealed class ValueTimestamp : PValue
 
 internal sealed class ValueTimestampArray : PValue
 {
-    ulong[] Value;
+    ulong[] Value = [];
 
     public ValueTimestampArray(ulong[] value) : this(value, 0)
     {
@@ -2284,7 +2285,7 @@ internal sealed class ValueTimespan : PValue
 
 internal sealed class ValueTimespanArray : PValue
 {
-    long[] Value;
+    long[] Value = [];
 
     public ValueTimespanArray(long[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2399,7 +2400,7 @@ internal sealed class ValueRID : PValue
 
 internal sealed class ValueRIDArray : PValue
 {
-    uint[] Value;
+    uint[] Value = [];
 
     public ValueRIDArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2515,7 +2516,7 @@ internal sealed class ValueAID : PValue
 
 internal sealed class ValueAIDArray : PValue
 {
-    uint[] Value;
+    uint[] Value = [];
 
     public ValueAIDArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2589,7 +2590,7 @@ internal sealed class ValueAIDArray : PValue
 internal sealed class ValueBlob : PValue
 {
     public uint BlobRootId;
-    byte[] Value;
+    byte[] Value = [];
 
     public bool HasBlobType; // Special
     public byte BlobType;    // Special
@@ -2687,7 +2688,7 @@ internal sealed class ValueBlob : PValue
             S7p.DecodeUInt32(buffer, out blobSize);
         }
         S7p.DecodeOctets(buffer, (int)blobSize, out var value);
-        var blob = new ValueBlob(blobRootId, value, flags)
+        var blob = new ValueBlob(blobRootId, value ?? [], flags)
         {
             HasBlobType = hasBlobType,
             BlobType = blobType
@@ -2698,7 +2699,7 @@ internal sealed class ValueBlob : PValue
 
 internal sealed class ValueBlobArray : PValue
 {
-    ValueBlob[] Value;
+    ValueBlob[] Value = [];
 
     public ValueBlobArray(ValueBlob[] value) : this(value, FLAGS_ADDRESSARRAY)
     {
@@ -2771,7 +2772,7 @@ internal sealed class ValueBlobSparseArray : PValue
         public byte[] value;
     }
 
-    public Dictionary<uint, BlobEntry> Value;
+    public Dictionary<uint, BlobEntry> Value = [];
 
     public ValueBlobSparseArray(Dictionary<uint, BlobEntry> value) : this(value, FLAGS_SPARSEARRAY)
     {
@@ -2837,7 +2838,8 @@ internal sealed class ValueBlobSparseArray : PValue
                 S7p.DecodeUInt32Vlq(buffer, out v.blobRootId);
                 S7p.DecodeUInt32Vlq(buffer, out blobSize);
                 v.value = new byte[blobSize];
-                S7p.DecodeOctets(buffer, (int)blobSize, out v.value);
+                S7p.DecodeOctets(buffer, (int)blobSize, out var blobData);
+                v.value = blobData ?? v.value;
                 value.Add(k, v);
 
                 S7p.DecodeUInt32Vlq(buffer, out k);
@@ -2851,7 +2853,8 @@ internal sealed class ValueBlobSparseArray : PValue
                 S7p.DecodeUInt32(buffer, out v.blobRootId);
                 S7p.DecodeUInt32(buffer, out blobSize);
                 v.value = new byte[blobSize];
-                S7p.DecodeOctets(buffer, (int)blobSize, out v.value);
+                S7p.DecodeOctets(buffer, (int)blobSize, out var blobData);
+                v.value = blobData ?? v.value;
                 value.Add(k, v);
 
                 S7p.DecodeUInt32(buffer, out k);
@@ -2863,7 +2866,7 @@ internal sealed class ValueBlobSparseArray : PValue
 
 internal sealed class ValueWString : PValue
 {
-    string Value;
+    string Value = "";
 
     public ValueWString(string value) : this(value, 0)
     {
@@ -2913,7 +2916,7 @@ internal sealed class ValueWString : PValue
 
 internal sealed class ValueWStringArray : PValue
 {
-    string[] Value;
+    string[] Value = [];
 
     public ValueWStringArray(string[] value) : this(value, FLAGS_ADDRESSARRAY)
     {
@@ -2986,7 +2989,7 @@ internal sealed class ValueWStringArray : PValue
 
 internal sealed class ValueWStringSparseArray : PValue
 {
-    Dictionary<uint, string> Value;
+    Dictionary<uint, string> Value = [];
 
     public ValueWStringSparseArray(Dictionary<uint, string> value) : this(value, FLAGS_SPARSEARRAY)
     {
