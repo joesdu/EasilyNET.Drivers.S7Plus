@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EasilyNET.Drivers.S7Plus/EasilyNET.Drivers.S7Plus.csproj" />
+  </Folder>
+</Solution>

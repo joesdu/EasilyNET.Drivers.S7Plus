@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>preview</LangVersion>
+    <!-- 协议层日志模板使用插值/拼接字符串（非常量），抑制结构化日志模板告警 -->
+    <NoWarn>$(NoWarn);CA2254;CA1031;CA2201</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <EnablePreviewFeatures>true</EnablePreviewFeatures>
+    <NoWarn>$(NoWarn);CA2252;SYSLIB5007</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>EasilyNET.Drivers.S7Plus</PackageId>
+    <Title>EasilyNET.Drivers.S7Plus</Title>
+    <Description>通用的西门子 S7-1200/S7-1500 符号寻址驱动（S7CommPlus 协议，纯托管 TLS 1.3）。A general-purpose Siemens S7-1200/S7-1500 symbolic-addressing driver over the S7CommPlus protocol with fully-managed TLS 1.3.</Description>
+    <PackageTags>Siemens;S7;S7Plus;S7CommPlus;PLC;Driver;IoT;EasilyNET</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- 双许可：根 LICENSE 为声明 + 高层封装 MIT 全文；协议层 LGPL-3.0 全文随包附带 -->
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- S7CommPlus 协议层为移植代码（thomas-v2/S7CommPlusDriver, LGPL）：
+         其 XML 注释非规范、可空注解不完整，统一抑制以保持构建整洁。
+         CS1591 缺少文档注释 / CS1570,CS1573,CS1587 XML 注释格式 / CS86xx 可空引用 -->
+    <NoWarn>$(NoWarn);CS1591;CS1570;CS1573;CS1587;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 纯托管 TLS 1.3 实现，替代原生 OpenSSL：提供 S7CommPlus 合法化所需的 RFC 5705 密钥导出 -->
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE-LGPL-3.0.txt" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE-GPL-3.0.txt" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

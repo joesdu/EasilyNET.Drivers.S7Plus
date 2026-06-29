@@ -1,3 +1,41 @@
+EasilyNET.Drivers.S7Plus — Dual License
+=======================================
+
+This repository is distributed under TWO licenses, depending on the component.
+Each source file declares its license with an `SPDX-License-Identifier` header.
+
+1) High-level wrapper — MIT License
+   Files authored for this project:
+     - src/EasilyNET.Drivers.S7Plus/S7PlusClient.cs
+     - src/EasilyNET.Drivers.S7Plus/S7PlusClientOptions.cs
+     - src/EasilyNET.Drivers.S7Plus/S7TagValue.cs
+   SPDX-License-Identifier: MIT
+   Full text below.
+
+2) S7CommPlus protocol layer — GNU LGPL-3.0-or-later
+   All files under src/EasilyNET.Drivers.S7Plus/S7CommPlus/ are derived from
+   thomas-v2/S7CommPlusDriver (https://github.com/thomas-v2/S7CommPlusDriver),
+   Copyright (C) 2023 Thomas Wiens, and remain licensed under the GNU Lesser
+   General Public License, version 3 or (at your option) any later version.
+   SPDX-License-Identifier: LGPL-3.0-or-later
+   Full text: see LICENSE-LGPL-3.0.txt (and LICENSE-GPL-3.0.txt, which the LGPL
+   incorporates by reference) and src/EasilyNET.Drivers.S7Plus/License.
+
+IMPORTANT — effect on the compiled assembly
+-------------------------------------------
+Because the protocol layer is LGPL-3.0, the produced assembly
+(EasilyNET.Drivers.S7Plus.dll) as a whole must be conveyed in compliance with
+the LGPL-3.0 terms. In particular, recipients must be able to relink/replace the
+LGPL-covered portion. The MIT grant above applies only to the three wrapper
+files listed in (1); it does not relax the LGPL obligations of the protocol
+layer. When you only reference the prebuilt NuGet package as a library
+dependency (dynamic linking), the LGPL is generally satisfied by retaining these
+notices and pointing users to the corresponding source.
+
+======================================================================
+MIT License — applies to the high-level wrapper files listed in (1) only
+======================================================================
+
 MIT License
 
 Copyright (c) 2026 Joe Du

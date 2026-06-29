@@ -1,0 +1,169 @@
+// SPDX-License-Identifier: LGPL-3.0-or-later
+// Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
+
+namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
+
+internal sealed class CommRessources
+{
+    public int TagsPerReadRequestMax { get; private set; } = 20;
+    public int TagsPerWriteRequestMax { get; private set; } = 20;
+    public int PlcAttributesMax { get; private set; }
+    public int PlcAttributesFree { get; private set; }
+    public int PlcSubscriptionsMax { get; private set; }
+    public int PlcSubscriptionsFree { get; private set; }
+    public int SubscriptionMemoryMax { get; private set; }
+    public int SubscriptionMemoryFree { get; private set; }
+
+    public int ReadMax(S7CommPlusConnection conn)
+    {
+        ArgumentNullException.ThrowIfNull(conn, nameof(conn));
+        var adrTagsPerReadRequestMax = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.SystemLimits
+        };
+        adrTagsPerReadRequestMax.LID.Add(1000);
+
+        var adrTagsPerWriteRequestMax = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.SystemLimits
+        };
+        adrTagsPerWriteRequestMax.LID.Add(1001);
+
+        var adrPlcSubscriptionsMax = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.SystemLimits
+        };
+        adrPlcSubscriptionsMax.LID.Add(0);
+
+        var adrPlcAttributesMax = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.SystemLimits
+        };
+        adrPlcAttributesMax.LID.Add(1);
+
+        var adrSubscriptionMemoryMax = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.SystemLimits
+        };
+        adrSubscriptionMemoryMax.LID.Add(2);
+
+        var readlist = new List<ItemAddress>
+        {
+            adrTagsPerReadRequestMax,
+            adrTagsPerWriteRequestMax,
+            adrPlcSubscriptionsMax,
+            adrPlcAttributesMax,
+            adrSubscriptionMemoryMax
+        };
+        // Read SystemLimits
+        // Assumption (so far, because for all CPUs which have be seen both values were the same):
+        // 1000 = Number for Reading
+        // 1001 = Number for Writing
+        var res = conn.ReadValues(readlist, out var values, out var errors);
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] != null && errors[i] == 0)
+            {
+                var v = ((ValueDInt)values[i]).GetValue();
+                switch (i)
+                {
+                    case 0:
+                        TagsPerReadRequestMax = v;
+                        break;
+                    case 1:
+                        TagsPerWriteRequestMax = v;
+                        break;
+                    case 2:
+                        PlcSubscriptionsMax = v;
+                        break;
+                    case 3:
+                        PlcAttributesMax = v;
+                        break;
+                    case 4:
+                        SubscriptionMemoryMax = v;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return res;
+    }
+
+    public int ReadFree(S7CommPlusConnection conn)
+    {
+        ArgumentNullException.ThrowIfNull(conn, nameof(conn));
+        var adrPlcSubscriptionsFree = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.FreeItems
+        };
+        adrPlcSubscriptionsFree.LID.Add(0);
+
+        var adrPlcAttributesFree = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.FreeItems
+        };
+        adrPlcAttributesFree.LID.Add(1);
+
+        var adrSubscriptionMemoryFree = new ItemAddress
+        {
+            AccessArea = Ids.ObjectRoot,
+            AccessSubArea = Ids.FreeItems
+        };
+        adrSubscriptionMemoryFree.LID.Add(2);
+
+        var readlist = new List<ItemAddress>
+        {
+            adrPlcSubscriptionsFree,
+            adrPlcAttributesFree,
+            adrSubscriptionMemoryFree
+        };
+
+        var res = conn.ReadValues(readlist, out var values, out var errors);
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (values[i] != null && errors[i] == 0)
+            {
+                var v = ((ValueDInt)values[i]).GetValue();
+                switch (i)
+                {
+                    case 0:
+                        PlcSubscriptionsFree = v;
+                        break;
+                    case 1:
+                        PlcAttributesFree = v;
+                        break;
+                    case 2:
+                        SubscriptionMemoryFree = v;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        return res;
+    }
+
+    public override string ToString()
+    {
+        var s = $"<CommRessources>{Environment.NewLine}";
+        s += $"<TagsPerReadRequestMax>{TagsPerReadRequestMax}</TagsPerReadRequestMax>{Environment.NewLine}";
+        s += $"<TagsPerWriteRequestMax>{TagsPerWriteRequestMax}</TagsPerWriteRequestMax>{Environment.NewLine}";
+        s += $"<PlcAttributesMax>{PlcAttributesMax}</PlcAttributesMax>{Environment.NewLine}";
+        s += $"<PlcAttributesFree>{PlcAttributesFree}</PlcAttributesFree>{Environment.NewLine}";
+        s += $"<PlcSubscriptionsMax>{PlcSubscriptionsMax}</PlcSubscriptionsMax>{Environment.NewLine}";
+        s += $"<PlcSubscriptionsFree>{PlcSubscriptionsFree}</PlcSubscriptionsFree>{Environment.NewLine}";
+        s += $"<SubscriptionMemoryMax>{SubscriptionMemoryMax}</SubscriptionMemoryMax>{Environment.NewLine}";
+        s += $"<SubscriptionMemoryFree>{SubscriptionMemoryFree}</SubscriptionMemoryFree>{Environment.NewLine}";
+        s += $"</CommRessources>{Environment.NewLine}";
+        return s;
+    }
+}
