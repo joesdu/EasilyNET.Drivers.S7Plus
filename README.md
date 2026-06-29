@@ -4,8 +4,6 @@
 
 A general-purpose communication driver for Siemens **S7-1200 / S7-1500** PLCs over the **S7CommPlus** protocol. Symbolic (tag-name) read/write with fully-managed TLS 1.3 — no native OpenSSL dependency.
 
-> 本库由 [DeepLogic 产品中的专用驱动](https://github.com/thomas-v2/S7CommPlusDriver) 抽离、去除产品耦合后形成的通用版本：协议层保持不变，仅将高层接口改造为框架无关的 `S7PlusClient`，日志改为 `Microsoft.Extensions.Logging` 抽象。
-
 ---
 
 ## 1. 概述与适用范围
