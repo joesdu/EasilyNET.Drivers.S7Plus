@@ -26,7 +26,7 @@
     <!-- S7CommPlus 协议层为移植代码（thomas-v2/S7CommPlusDriver, LGPL）：
          其 XML 注释非规范、可空注解不完整，统一抑制以保持构建整洁。
          CS1591 缺少文档注释 / CS1570,CS1573,CS1587 XML 注释格式 / CS86xx 可空引用 -->
-    <NoWarn>$(NoWarn);CS1591;CS1570;CS1573;CS1587;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1570;CS1572;CS1573;CS1587;CS8600;CS8601;CS8602;CS8603;CS8604;CS8618;CS8625</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

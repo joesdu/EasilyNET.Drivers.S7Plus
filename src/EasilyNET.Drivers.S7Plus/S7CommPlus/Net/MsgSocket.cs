@@ -4,19 +4,15 @@ using System.Net.Sockets;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
 
-// 
-internal sealed class MsgSocket : IDisposable
+// 纯异步 ISO-on-TCP socket：所有 I/O 走 Socket 的 *Async API，无忙等待、无阻塞调用。
+// 不实现 IDisposable：底层 Socket 的关闭是同步原语，统一通过 Close() 释放。
+internal sealed class MsgSocket
 {
     private Socket? TCPSocket;
     public int LastError;
 
     public MsgSocket()
     {
-    }
-
-    ~MsgSocket()
-    {
-        Close();
     }
 
     public void Close()
@@ -33,29 +29,35 @@ internal sealed class MsgSocket : IDisposable
         };
     }
 
-    public int Connect(string Host, int Port)
+    public async ValueTask<int> ConnectAsync(string host, int port, CancellationToken cancellationToken = default)
     {
         LastError = 0;
         if (Connected)
         {
             return LastError;
         }
-
         // 释放可能残留的上一次失败连接的 socket，避免句柄泄漏
         Close();
-
         try
         {
             CreateSocket();
-            // 同步 Socket.Connect 会忽略 ConnectTimeout（不可达主机时阻塞约 21 秒），
-            // 这里用带取消令牌的异步连接来真正实施连接超时。
-            using var cts = new CancellationTokenSource(ConnectTimeout > 0 ? ConnectTimeout : Timeout.Infinite);
-            TCPSocket!.ConnectAsync(Host, Port, cts.Token).AsTask().GetAwaiter().GetResult();
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            if (ConnectTimeout > 0)
+            {
+                cts.CancelAfter(ConnectTimeout);
+            }
+            await TCPSocket!.ConnectAsync(host, port, cts.Token).ConfigureAwait(false);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             LastError = S7Consts.errTCPConnectionTimeout;
             Close();
+        }
+        catch (OperationCanceledException)
+        {
+            // 调用方取消
+            Close();
+            throw;
         }
         catch
         {
@@ -65,73 +67,90 @@ internal sealed class MsgSocket : IDisposable
         return LastError;
     }
 
-    private int WaitForData(int Size, int Timeout)
+    /// <summary>
+    ///     异步精确读取 <paramref name="size" /> 个字节到 <paramref name="buffer" /> 的 <paramref name="start" /> 处。
+    ///     <paramref name="applyReadTimeout" /> 为 <see langword="true" /> 时套用 <see cref="ReadTimeout" />；
+    ///     为 <see langword="false" /> 时仅受 <paramref name="cancellationToken" /> 约束（用于空闲等待下一帧首字节）。
+    /// </summary>
+    public async ValueTask<int> ReceiveAsync(byte[] buffer, int start, int size, bool applyReadTimeout, CancellationToken cancellationToken = default)
     {
-        var Expired = false;
-        int SizeAvail;
-        var Elapsed = Environment.TickCount;
         LastError = 0;
+        var sock = TCPSocket;
+        if (sock is null)
+        {
+            return LastError = S7Consts.errTCPNotConnected;
+        }
+        CancellationTokenSource? cts = null;
         try
         {
-            SizeAvail = TCPSocket?.Available ?? 0;
-            while ((SizeAvail < Size) && (!Expired))
+            var token = cancellationToken;
+            if (applyReadTimeout && ReadTimeout > 0)
             {
-                Thread.Sleep(2);
-                SizeAvail = TCPSocket?.Available ?? 0;
-                Expired = Environment.TickCount - Elapsed > Timeout;
-                // If timeout we clean the buffer
-                if (Expired && (SizeAvail > 0))
-                {
-                    try
-                    {
-                        var Flush = new byte[SizeAvail];
-                        TCPSocket?.Receive(Flush, 0, SizeAvail, SocketFlags.None);
-                    }
-                    catch { }
-                }
+                cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                cts.CancelAfter(ReadTimeout);
+                token = cts.Token;
             }
+            var read = 0;
+            while (read < size)
+            {
+                var n = await sock.ReceiveAsync(buffer.AsMemory(start + read, size - read), SocketFlags.None, token).ConfigureAwait(false);
+                if (n == 0)
+                {
+                    // 对端关闭连接
+                    LastError = S7Consts.errTCPDataReceive;
+                    Close();
+                    break;
+                }
+                read += n;
+            }
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // 读超时：socket 仍可能可用，但本帧已残缺；上层据此触发重连
+            LastError = S7Consts.errTCPDataReceive;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
             LastError = S7Consts.errTCPDataReceive;
+            Close();
         }
-        if (Expired)
+        finally
         {
-            LastError = S7Consts.errTCPDataReceive;
+            cts?.Dispose();
         }
         return LastError;
     }
 
-    public int Receive(byte[] Buffer, int Start, int Size)
-    {
-
-        var BytesRead = 0;
-        LastError = WaitForData(Size, ReadTimeout);
-        if (LastError == 0)
-        {
-            try
-            {
-                BytesRead = TCPSocket?.Receive(Buffer, Start, Size, SocketFlags.None) ?? 0;
-            }
-            catch
-            {
-                LastError = S7Consts.errTCPDataReceive;
-            }
-            if (BytesRead == 0) // Connection Reset by the peer
-            {
-                LastError = S7Consts.errTCPDataReceive;
-                Close();
-            }
-        }
-        return LastError;
-    }
-
-    public int Send(byte[] Buffer, int Size)
+    public async ValueTask<int> SendAsync(byte[] buffer, int size, CancellationToken cancellationToken = default)
     {
         LastError = 0;
+        var sock = TCPSocket;
+        if (sock is null)
+        {
+            return LastError = S7Consts.errTCPNotConnected;
+        }
         try
         {
-            var BytesSent = TCPSocket?.Send(Buffer, Size, SocketFlags.None) ?? 0;
+            var sent = 0;
+            while (sent < size)
+            {
+                var n = await sock.SendAsync(buffer.AsMemory(sent, size - sent), SocketFlags.None, cancellationToken).ConfigureAwait(false);
+                if (n <= 0)
+                {
+                    LastError = S7Consts.errTCPDataSend;
+                    Close();
+                    break;
+                }
+                sent += n;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch
         {
@@ -147,10 +166,4 @@ internal sealed class MsgSocket : IDisposable
 
     public int WriteTimeout { get; set; } = 2000;
     public int ConnectTimeout { get; set; } = 1000;
-
-    public void Dispose()
-    {
-        Close();
-        GC.SuppressFinalize(this);
-    }
 }

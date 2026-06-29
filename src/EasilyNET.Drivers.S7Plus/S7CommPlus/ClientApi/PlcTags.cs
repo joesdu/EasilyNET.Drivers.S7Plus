@@ -7,13 +7,13 @@ namespace EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 
 internal static class PlcTags
 {
-    public static int ReadTags(this S7CommPlusConnection conn, List<PlcTag> plcTags)
+    public static async Task<int> ReadTagsAsync(this S7CommPlusConnection conn, List<PlcTag> plcTags, CancellationToken ct = default)
     {
         var readlist = new List<ItemAddress>();
         ArgumentNullException.ThrowIfNull(conn, nameof(conn));
         ArgumentNullException.ThrowIfNull(plcTags, nameof(plcTags));
         readlist.AddRange(from tag in plcTags select tag.Address);
-        var res = conn.ReadValues(readlist, out var values, out var errors);
+        var (res, values, errors) = await conn.ReadValuesAsync(readlist, ct).ConfigureAwait(false);
 
         if (res == 0)
         {
@@ -31,7 +31,7 @@ internal static class PlcTags
         return res;
     }
 
-    public static int WriteTags(this S7CommPlusConnection conn, List<PlcTag> plcTags)
+    public static async Task<int> WriteTagsAsync(this S7CommPlusConnection conn, List<PlcTag> plcTags, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(conn, nameof(conn));
         ArgumentNullException.ThrowIfNull(plcTags, nameof(plcTags));
@@ -43,7 +43,7 @@ internal static class PlcTags
             values.Add(tag.GetWriteValue());
         }
 
-        var res = conn.WriteValues(writelist, values, out var errors);
+        var (res, errors) = await conn.WriteValuesAsync(writelist, values, ct).ConfigureAwait(false);
 
         if (res == 0)
         {

@@ -7,7 +7,7 @@ using EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
 
 namespace EasilyNET.Drivers.S7Plus;
 
-internal sealed partial class S7CommPlusConnection : IDisposable
+internal sealed partial class S7CommPlusConnection
 {
     // *************************************************
     // *                IMPORTANT!                     *
@@ -28,7 +28,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="plcTags">The list of tags to add to the subscription</param>
     /// <param name="cycleTime">Cycle time for update in milliseconds. Lowest value seems to be 100 ms (if it's not dependant on the CPU).</param>
     /// <returns></returns>
-    public int SubscriptionCreate(List<PlcTag> plcTags, ushort cycleTime)
+    public async Task<int> SubscriptionCreateAsync(List<PlcTag> plcTags, ushort cycleTime, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(plcTags, nameof(plcTags));
         int res;
@@ -90,7 +90,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -177,7 +177,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         return new ValueUDIntArray([.. la], 0x20); // 0x20 -> Adressarray
     }
 
-    public int TestWaitForVariableChangeNotifications(int untilNumberOfNotifications)
+    public async Task<int> TestWaitForVariableChangeNotificationsAsync(int untilNumberOfNotifications, CancellationToken ct = default)
     {
         var res = 0;
         short creditLimitStep = 5;
@@ -186,7 +186,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         {
             log.LogDebug($"{Environment.NewLine}WaitForNotifications(): *** Loop #{i} ***");
             m_LastError = 0;
-            WaitForNewS7plusReceived(5000);
+            await WaitForNewS7plusReceivedAsync(5000, ct);
             if (m_LastError != 0)
             {
                 return m_LastError;
@@ -220,46 +220,43 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         return res;
     }
 
-    public int SubscriptionDelete()
+    public async Task<int> SubscriptionDeleteAsync(CancellationToken ct = default)
     {
         int res;
         m_SubscribedTags.Clear();
         m_SubscriptionObjectId = 0;
         log.LogDebug($"SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}");
-        res = DeleteObject(SessionId2);
+        res = await DeleteObjectAsync(SessionId2, ct).ConfigureAwait(false);
         return res;
     }
 
     private bool m_disposed;
 
-    public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
     /// <summary>
-    /// 释放连接持有的托管资源：底层 <see cref="S7Client" />（内部会停止接收线程并关闭 Socket）
-    /// 以及接收缓冲用的 <see cref="MemoryStream" />。
-    /// 注意：此处不做优雅的会话删除（DeleteObject 的网络往返）；需要优雅断开时请显式调用 <see cref="Disconnect" />。
+    /// 异步释放连接持有的资源：底层 <see cref="S7Client" />（内部停止收发泵并关闭 Socket）、
+    /// 异步响应信号量与接收缓冲用的 <see cref="MemoryStream" />。
+    /// 注意：此处不做优雅的会话删除（DeleteObject 的网络往返）；需要优雅断开时请显式调用 <see cref="DisconnectAsync" />。
     /// </summary>
-    private void Dispose(bool disposing)
+    public async ValueTask DisposeAsync()
     {
         if (m_disposed)
         {
             return;
         }
-        if (disposing)
+        m_disposed = true;
+        if (m_client is not null)
         {
-            m_client?.Dispose();
-            m_Mutex?.Dispose(); // Mutex 是 OS 句柄(IDisposable)，此前漏释放，每次重连泄漏一个句柄
-            m_ReceivedPDU?.Dispose();
-            m_ReceivedTempPDU?.Dispose();
+            await m_client.DisposeAsync().ConfigureAwait(false);
+        }
+        m_pduSignal?.Dispose();
+        m_ReceivedPDU?.Dispose();
+        m_ReceivedTempPDU?.Dispose();
+        lock (m_pduLock)
+        {
             while (m_ReceivedPDUs.Count > 0)
             {
                 m_ReceivedPDUs.Dequeue().Dispose();
             }
         }
-        m_disposed = true;
     }
 }

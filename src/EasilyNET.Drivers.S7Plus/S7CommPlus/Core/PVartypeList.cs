@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class PVartypeList
@@ -34,19 +36,19 @@ internal sealed class PVartypeList
 
     public override string ToString()
     {
-        var s = "";
-        s += "<VartypeList>" + Environment.NewLine;
-        s += $"<FirstId>{FirstId}</FirstId>" + Environment.NewLine;
+        var s = new StringBuilder("");
+        s.AppendLine("<VartypeList>");
+        s.AppendLine($"<FirstId>{FirstId}</FirstId>");
         var i = 1;
         foreach (var elem in Elements)
         {
-            s += $"<Element index=\"{i}\">" + Environment.NewLine;
-            s += elem.ToString();
-            s += "</Element>" + Environment.NewLine;
+            s.AppendLine($"<Element index=\"{i}\">");
+            s.Append(elem.ToString());
+            s.AppendLine("</Element>");
             i++;
         }
-        s += "</VartypeList>" + Environment.NewLine;
-        return s;
+        s.AppendLine("</VartypeList>");
+        return s.ToString();
     }
 }
 

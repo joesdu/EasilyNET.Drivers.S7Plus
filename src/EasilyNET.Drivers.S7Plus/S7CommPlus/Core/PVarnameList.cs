@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class PVarnameList
@@ -34,15 +36,15 @@ internal sealed class PVarnameList
 
     public override string ToString()
     {
-        var s = "";
+        var s = new StringBuilder("");
         var i = 1;
-        s += "<VarnameList>" + Environment.NewLine;
+        s.AppendLine("<VarnameList>");
         foreach (var name in Names)
         {
-            s += $"<Name index=\"{i}\">{name}</Name>" + Environment.NewLine;
+            s.AppendLine($"<Name index=\"{i}\">{name}</Name>");
             i++;
         }
-        s += "</VarnameList>" + Environment.NewLine;
-        return s;
+        s.AppendLine("</VarnameList>");
+        return s.ToString();
     }
 }

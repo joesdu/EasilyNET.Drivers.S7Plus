@@ -43,11 +43,13 @@ dotnet add package EasilyNET.Drivers.S7Plus
 
 ## 4. 快速开始
 
+本客户端为**异步优先**（async-first）：连接/读/写/断开均为 `Task` 异步方法，并支持 `CancellationToken`。
+
 ```csharp
 using EasilyNET.Drivers.S7Plus;
 
-// logger 可选；传 null 则不输出日志
-using var client = new S7PlusClient(
+// logger 可选；传 null 则不输出日志。推荐 await using 以异步释放
+await using var client = new S7PlusClient(
     host: "192.168.0.1",
     options: new S7PlusClientOptions
     {
@@ -57,26 +59,30 @@ using var client = new S7PlusClient(
     },
     logger: null);
 
-// 连接（同步阻塞）。Read/Write 在未连接时也会自动尝试连接。
-if (!client.Connect())
+// 连接（异步）。Read/Write 在未连接时也会自动尝试连接。
+if (!await client.ConnectAsync())
 {
     Console.WriteLine("连接失败");
     return;
 }
 
 // 批量读取：按 PLC 中每个符号的真实类型解码为字符串
-foreach (var v in client.Read("DB_1.Temperature", "DB_1.Motor.Speed", "DB_1.Buffer[5]"))
+foreach (var v in await client.ReadAsync("DB_1.Temperature", "DB_1.Motor.Speed", "DB_1.Buffer[5]"))
 {
     Console.WriteLine($"{v.Symbol} = {(v.IsGood ? v.Value : "<bad>")} @ {v.Timestamp}");
 }
 
 // 写入：按解析到的真实类型编码
-client.Write("DB_1.Setpoint", "42");
-client.Write(new Dictionary<string, string>
+await client.WriteAsync("DB_1.Setpoint", "42");
+await client.WriteAsync(new Dictionary<string, string>
 {
     ["DB_1.Enable"] = "1",
     ["DB_1.Name"]   = "Hello"
 });
+
+// 带取消令牌
+using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+var values = await client.ReadAsync(["DB_1.Temperature"], cts.Token);
 ```
 
 ### 公开 API
@@ -84,15 +90,18 @@ client.Write(new Dictionary<string, string>
 | 成员 | 说明 |
 |---|---|
 | `new S7PlusClient(host, options?, logger?)` | 创建客户端；`options` 含用户名/密码/超时，`logger` 为可选 `ILogger` |
-| `bool Connect()` | 连接（同步阻塞），已连接返回 `true` |
-| `void Disconnect()` | 断开并释放底层连接 |
+| `Task<bool> ConnectAsync(ct = default)` | 异步连接，已连接返回 `true` |
+| `Task DisconnectAsync(ct = default)` | 异步断开并释放底层连接 |
 | `bool Connected` | 当前是否已连接 |
-| `IReadOnlyList<S7TagValue> Read(params string[] symbols)` | 批量读取；未连接时自动连接 |
-| `bool Write(string symbol, string value)` | 写单点 |
-| `bool Write(IEnumerable<KeyValuePair<string,string>> writes)` | 批量写 |
-| `void Dispose()` | 断开并释放（推荐 `using`） |
+| `Task<IReadOnlyList<S7TagValue>> ReadAsync(params string[] symbols)` | 异步批量读取；未连接时自动连接 |
+| `Task<IReadOnlyList<S7TagValue>> ReadAsync(IEnumerable<string> symbols, ct = default)` | 同上，带取消令牌 |
+| `Task<bool> WriteAsync(string symbol, string value, ct = default)` | 异步写单点 |
+| `Task<bool> WriteAsync(IEnumerable<KeyValuePair<string,string>> writes, ct = default)` | 异步批量写 |
+| `ValueTask DisposeAsync()` | 异步释放（仅 `IAsyncDisposable`，请用 `await using`） |
 
 `S7TagValue`：`Symbol`（符号）、`Value`（解码后的字符串，失败为 `null`）、`IsGood`（是否成功）、`Timestamp`（读取时间）。
+
+> **关于异步的说明**：本驱动为**自上而下的真异步实现**——从底层 socket 收发（`Socket.*Async`）、TLS 密文泵、ISO 帧组装，到 S7CommPlus 请求-响应等待，全链路均为真正的 `await`，**无后台线程、无忙等待轮询、无 `Task.Run` 包装**。接收由单个异步“接收泵”驱动，响应经异步信号量交付，`CancellationToken` 贯穿全程。所有 I/O 通过同一异步信号量串行化，可从多处并发 `await`（自动排队），避免同一连接上的并发请求导致协议序列号错乱。
 
 ---
 
@@ -168,7 +177,7 @@ client.Write(new Dictionary<string, string>
 - **批量读取**：多个点按 PLC 协商的单请求最大点数自动分块。
 - **自动重连**：通信异常 / 读写超时 / PLC 主动终止会话时，`Read`/`Write` 会断开连接；下次调用自动重连并重新解析符号。
 - **资源释放**：断开/重连及 `Dispose` 时完整释放底层连接（`S7Client`/Socket/Mutex 等）。
-- **线程安全**：连接生命周期（Connect/Disconnect）已加锁；但**并发读写需由调用方串行化**（同一连接的并发 IO 会导致序列号错乱）。
+- **线程安全 / 并发**：全部 I/O（连接/读/写/断开）通过同一异步信号量串行化，可安全地从多处并发 `await`——调用会自动排队，无需调用方手动串行化（避免同一连接的并发请求导致序列号错乱）。
 
 ---
 

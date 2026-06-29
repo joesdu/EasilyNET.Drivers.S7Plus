@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 
 namespace EasilyNET.Drivers.S7Plus;
 
-internal sealed partial class S7CommPlusConnection : IDisposable
+internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 {
     #region Private Members
     private readonly ILogger log;
@@ -20,7 +20,9 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     private MemoryStream m_ReceivedPDU;
     private MemoryStream m_ReceivedTempPDU;
     private readonly Queue<MemoryStream> m_ReceivedPDUs = new();
-    private readonly Mutex m_Mutex = new();
+    // 接收队列的快速同步锁 + 可用信号量（异步等待响应，取代原 Mutex + Thread.Sleep 忙等待）
+    private readonly Lock m_pduLock = new();
+    private readonly SemaphoreSlim m_pduSignal = new(0);
 
     private bool m_ReceivedNeedMoreDataForCompletePDU;
     private bool m_NewS7CommPlusReceived;
@@ -37,10 +39,9 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     private List<DatablockInfo> dbInfoList;
     private readonly List<PObject> typeInfoList = [];
 
-    // 事务锁：把"发送请求 → 等待响应 → 反序列化"作为一个原子临界区，
-    // 防止轮询线程与写线程并发交错序列号/IntegrityId 与共享 PDU 队列（参见 issue #81/#70）。
-    // 使用可重入的 Monitor（lock），因为 Browse/getPlcTagBySymbol 会在同一线程内再次进入这些方法。
-    private readonly Lock m_ioLock = new();
+    // 注：原先用可重入 Monitor 把"发送→等待→反序列化"串行化以防轮询/写线程交错。
+    // 现由上层 S7PlusClient 的异步信号量串行化全部 I/O（同一连接同一时刻只有一个请求流），
+    // 接收泵仅向线程安全的 PDU 队列投递，故此处无需连接级锁。
     #endregion
 
     #region Public Members
@@ -101,36 +102,41 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         return ret;
     }
 
-    private void WaitForNewS7plusReceived(int Timeout)
+    // 异步等待一个完整响应 PDU：由接收泵在投递 PDU（或检出致命 SystemEvent）时释放信号量，
+    // 取代原先的 Thread.Sleep(2) 忙等待。超时或取消视为接收错误。
+    private async ValueTask WaitForNewS7plusReceivedAsync(int Timeout, CancellationToken cancellationToken)
     {
-        var Expired = false;
-        var Elapsed = Environment.TickCount;
-        var done = false;
-
-        m_Mutex.WaitOne();
-        if (m_ReceivedPDUs.Count > 0)
+        bool got;
+        try
         {
-            m_ReceivedPDU = m_ReceivedPDUs.Dequeue();
-            done = true;
+            got = await m_pduSignal.WaitAsync(Timeout, cancellationToken).ConfigureAwait(false);
         }
-        m_Mutex.ReleaseMutex();
-
-        while (!done && !Expired)
+        catch (OperationCanceledException)
         {
-            Thread.Sleep(2);
-            Expired = Environment.TickCount - Elapsed > Timeout;
-            m_Mutex.WaitOne();
-            if (m_ReceivedPDUs.Count > 0)
-            {
-                m_ReceivedPDU = m_ReceivedPDUs.Dequeue();
-                done = true;
-            }
-            m_Mutex.ReleaseMutex();
+            m_LastError = S7Consts.errTCPDataReceive;
+            throw;
         }
-
-        if (Expired)
+        if (!got)
         {
             log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: ERROR: Timeout!");
+            m_LastError = S7Consts.errTCPDataReceive;
+            return;
+        }
+        MemoryStream? pdu = null;
+        lock (m_pduLock)
+        {
+            if (m_ReceivedPDUs.Count > 0)
+            {
+                pdu = m_ReceivedPDUs.Dequeue();
+            }
+        }
+        if (pdu is not null)
+        {
+            m_ReceivedPDU = pdu;
+        }
+        else if (m_LastError == 0)
+        {
+            // 被唤醒但无可用 PDU：通常是致命 SystemEvent 已置位 m_LastError；否则视为接收错误
             m_LastError = S7Consts.errTCPDataReceive;
         }
     }
@@ -278,8 +284,9 @@ internal sealed partial class S7CommPlusConnection : IDisposable
                 if (sysevt.IsFatalError())
                 {
                     log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent has fatal error");
-                    // Termination neccessary
+                    // Termination neccessary：置错误并唤醒等待者（无 PDU 入队）
                     m_LastError = S7Consts.errIsoInvalidPDU;
+                    m_pduSignal.Release();
                 }
                 else
                 {
@@ -307,10 +314,12 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         // If a complete (usable) PDU is received, add to the queue (threadsafe) for readout
         if (m_NewS7CommPlusReceived)
         {
-            // Push complete PDU to the queue
-            m_Mutex.WaitOne();
-            m_ReceivedPDUs.Enqueue(m_ReceivedTempPDU);
-            m_Mutex.ReleaseMutex();
+            // Push complete PDU to the queue 并释放信号量唤醒等待者
+            lock (m_pduLock)
+            {
+                m_ReceivedPDUs.Enqueue(m_ReceivedTempPDU);
+            }
+            m_pduSignal.Release();
             m_NewS7CommPlusReceived = false;
         }
     }
@@ -369,7 +378,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="password">PLC password (if set)</param>
     /// <param name="timeoutMs">read timeout in milliseconds (default: 5000 ms)</param>
     /// <returns></returns>
-    public int Connect(string address, string password = "", string username = "", int timeoutMs = 5000)
+    public async Task<int> ConnectAsync(string address, string password = "", string username = "", int timeoutMs = 5000, CancellationToken ct = default)
     {
         if (timeoutMs > 0)
         {
@@ -385,7 +394,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         };
 
         m_client.SetConnectionParams(address, 0x0600, Encoding.ASCII.GetBytes("SIMATIC-ROOT-HMI"));
-        res = m_client.Connect();
+        res = await m_client.ConnectAsync(ct).ConfigureAwait(false);
         if (res != 0)
         {
             return res;
@@ -401,7 +410,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -441,7 +450,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -478,7 +487,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -496,7 +505,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         #endregion
 
         #region Step 5: Read SystemLimits
-        res = m_CommRessources.ReadMax(this);
+        res = await m_CommRessources.ReadMaxAsync(this, ct).ConfigureAwait(false);
         if (res != 0)
         {
             m_client.Disconnect();
@@ -505,7 +514,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         #endregion
 
         #region Step 6: Password
-        res = Legitimate(serverSession, password, username);
+        res = await LegitimateAsync(serverSession, password, username, ct).ConfigureAwait(false);
         if (res != 0)
         {
             m_client.Disconnect();
@@ -518,9 +527,17 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         return 0;
     }
 
-    public void Disconnect()
+    /// <summary>
+    /// 优雅断开：删除会话对象后关闭底层连接。
+    /// </summary>
+    public async Task DisconnectAsync(CancellationToken ct = default)
     {
-        DeleteObject(m_SessionId);
+        try
+        {
+            await DeleteObjectAsync(m_SessionId, ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { /* 取消：直接关闭 */ }
+        catch (Exception ex) { log.LogDebug(ex, "S7CommPlusConnection - Disconnect: DeleteObject error"); }
         m_client.Disconnect();
     }
 
@@ -529,188 +546,179 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// </summary>
     /// <param name="deleteObjectId">The object Id to delete</param>
     /// <returns>0 on success</returns>
-    private int DeleteObject(uint deleteObjectId)
+    private async Task<int> DeleteObjectAsync(uint deleteObjectId, CancellationToken ct = default)
     {
-        lock (m_ioLock)
+        int res;
+        var delObjReq = new DeleteObjectRequest(ProtocolVersion.V2)
+        {
+            DeleteObjectId = deleteObjectId
+        };
+        res = SendS7plusFunctionObject(delObjReq);
+        m_LastError = 0;
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
+        if (m_LastError != 0)
+        {
+            return m_LastError;
+        }
+        // If we delete our own session id, then there's no IntegrityId in the response.
+        // And the error code gives an error, but not a fatal one.
+        // If we delete another object, there should be an IntegrityId in the response, and
+        // the response gives no error.
+        if (deleteObjectId == m_SessionId)
+        {
+            var delObjRes = DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, false);
+            log.LogDebug("S7CommPlusConnection - DeleteSession: Deleted our own Session Id object, not checking the response.");
+            m_SessionId = 0; // not valid anymore
+            SessionId2 = 0;
+        }
+        else
+        {
+            var delObjRes = DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, true);
+            res = checkResponseWithIntegrity(delObjReq, delObjRes);
+            if (res != 0)
+            {
+                return res;
+            }
+            if (delObjRes.ReturnValue != 0)
+            {
+                log.LogDebug($"S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={delObjRes.ReturnValue}");
+                res = -1;
+            }
+        }
+        return res;
+    }
+
+    public async Task<(int res, List<object> values, List<ulong> errors)> ReadValuesAsync(List<ItemAddress> addresslist, CancellationToken ct = default)
+    {
+        // The requester must pass the internal type with the request, otherwise not all return values can be converted automatically.
+        // For example, strings are transmitted as UInt-Array.
+        var values = new List<object>();
+        var errors = new List<ulong>();
+        // Initialize error fields to error value
+        for (var i = 0; i < addresslist.Count; i++)
+        {
+            values.Add(null);
+            errors.Add(0xffffffffffffffff);
+        }
+
+        // Split request into chunks, taking the MaxTags per request into account
+        var chunk_startIndex = 0;
+        var count_perChunk = 0;
+        do
         {
             int res;
-            var delObjReq = new DeleteObjectRequest(ProtocolVersion.V2)
+            var getMultiVarReq = new GetMultiVariablesRequest(ProtocolVersion.V2);
+
+            getMultiVarReq.AddressList.Clear();
+            count_perChunk = 0;
+            while (count_perChunk < m_CommRessources.TagsPerReadRequestMax && (chunk_startIndex + count_perChunk) < addresslist.Count)
             {
-                DeleteObjectId = deleteObjectId
-            };
-            res = SendS7plusFunctionObject(delObjReq);
+                getMultiVarReq.AddressList.Add(addresslist[chunk_startIndex + count_perChunk]);
+                count_perChunk++;
+            }
+
+            res = SendS7plusFunctionObject(getMultiVarReq);
             m_LastError = 0;
-            WaitForNewS7plusReceived(m_ReadTimeout);
+            await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
             if (m_LastError != 0)
             {
-                return m_LastError;
+                return (m_LastError, values, errors);
             }
-            // If we delete our own session id, then there's no IntegrityId in the response.
-            // And the error code gives an error, but not a fatal one.
-            // If we delete another object, there should be an IntegrityId in the response, and
-            // the response gives no error.
-            if (deleteObjectId == m_SessionId)
+
+            var getMultiVarRes = GetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
+            res = checkResponseWithIntegrity(getMultiVarReq, getMultiVarRes);
+            if (res != 0)
             {
-                var delObjRes = DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, false);
-                log.LogDebug("S7CommPlusConnection - DeleteSession: Deleted our own Session Id object, not checking the response.");
-                m_SessionId = 0; // not valid anymore
-                SessionId2 = 0;
+                return (res, values, errors);
             }
-            else
+            // ReturnValue shows also an error, if only one single variable could not be read
+            if (getMultiVarRes.ReturnValue != 0)
             {
-                var delObjRes = DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-                res = checkResponseWithIntegrity(delObjReq, delObjRes);
-                if (res != 0)
-                {
-                    return res;
-                }
-                if (delObjRes.ReturnValue != 0)
-                {
-                    log.LogDebug($"S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={delObjRes.ReturnValue}");
-                    res = -1;
-                }
+                log.LogDebug($"S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={getMultiVarRes.ReturnValue}");
             }
-            return res;
-        }
+
+            // TODO: If a variable could not be read, there is no value, but there is an ErrorValue.
+            // The user must therefore check whether Value != null. Maybe there's a more elegant solution.
+            foreach (var v in getMultiVarRes.Values)
+            {
+                values[chunk_startIndex + (int)v.Key - 1] = v.Value;
+                // Initialize error to 0, will be overwritten below if there was an error on an item.
+                errors[chunk_startIndex + (int)v.Key - 1] = 0;
+            }
+
+            foreach (var ev in getMultiVarRes.ErrorValues)
+            {
+                errors[chunk_startIndex + (int)ev.Key - 1] = ev.Value;
+            }
+            chunk_startIndex += count_perChunk;
+
+        } while (chunk_startIndex < addresslist.Count);
+
+        return (m_LastError, values, errors);
     }
 
-    public int ReadValues(List<ItemAddress> addresslist, out List<object> values, out List<ulong> errors)
+    public async Task<(int res, List<ulong> errors)> WriteValuesAsync(List<ItemAddress> addresslist, List<PValue> values, CancellationToken ct = default)
     {
-        lock (m_ioLock)
+        int res;
+        var errors = new List<ulong>();
+        for (var i = 0; i < addresslist.Count; i++)
         {
-            // The requester must pass the internal type with the request, otherwise not all return values can be converted automatically.
-            // For example, strings are transmitted as UInt-Array.
-            values = [];
-            errors = [];
-            // Initialize error fields to error value
-            for (var i = 0; i < addresslist.Count; i++)
+            // Initialize to no error value, as there's no explicit value for write success.
+            errors.Add(0);
+        }
+
+        // Split request into chunks, taking the MaxTags per request into account
+        var chunk_startIndex = 0;
+        var count_perChunk = 0;
+        do
+        {
+            var setMultiVarReq = new SetMultiVariablesRequest(ProtocolVersion.V2);
+            setMultiVarReq.AddressListVar.Clear();
+            setMultiVarReq.ValueList.Clear();
+            count_perChunk = 0;
+            while (count_perChunk < m_CommRessources.TagsPerWriteRequestMax && (chunk_startIndex + count_perChunk) < addresslist.Count)
             {
-                values.Add(null);
-                errors.Add(0xffffffffffffffff);
+                setMultiVarReq.AddressListVar.Add(addresslist[chunk_startIndex + count_perChunk]);
+                setMultiVarReq.ValueList.Add(values[chunk_startIndex + count_perChunk]);
+                count_perChunk++;
             }
 
-            // Split request into chunks, taking the MaxTags per request into account
-            var chunk_startIndex = 0;
-            var count_perChunk = 0;
-            do
+            res = SendS7plusFunctionObject(setMultiVarReq);
+            if (res != 0)
             {
-                int res;
-                var getMultiVarReq = new GetMultiVariablesRequest(ProtocolVersion.V2);
-
-                getMultiVarReq.AddressList.Clear();
-                count_perChunk = 0;
-                while (count_perChunk < m_CommRessources.TagsPerReadRequestMax && (chunk_startIndex + count_perChunk) < addresslist.Count)
-                {
-                    getMultiVarReq.AddressList.Add(addresslist[chunk_startIndex + count_perChunk]);
-                    count_perChunk++;
-                }
-
-                res = SendS7plusFunctionObject(getMultiVarReq);
-                m_LastError = 0;
-                WaitForNewS7plusReceived(m_ReadTimeout);
-                if (m_LastError != 0)
-                {
-                    return m_LastError;
-                }
-
-                var getMultiVarRes = GetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
-                res = checkResponseWithIntegrity(getMultiVarReq, getMultiVarRes);
-                if (res != 0)
-                {
-                    return res;
-                }
-                // ReturnValue shows also an error, if only one single variable could not be read
-                if (getMultiVarRes.ReturnValue != 0)
-                {
-                    log.LogDebug($"S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={getMultiVarRes.ReturnValue}");
-                }
-
-                // TODO: If a variable could not be read, there is no value, but there is an ErrorValue.
-                // The user must therefore check whether Value != null. Maybe there's a more elegant solution.
-                foreach (var v in getMultiVarRes.Values)
-                {
-                    values[chunk_startIndex + (int)v.Key - 1] = v.Value;
-                    // Initialize error to 0, will be overwritten below if there was an error on an item.
-                    errors[chunk_startIndex + (int)v.Key - 1] = 0;
-                }
-
-                foreach (var ev in getMultiVarRes.ErrorValues)
-                {
-                    errors[chunk_startIndex + (int)ev.Key - 1] = ev.Value;
-                }
-                chunk_startIndex += count_perChunk;
-
-            } while (chunk_startIndex < addresslist.Count);
-
-            return m_LastError;
-        }
-    }
-
-    public int WriteValues(List<ItemAddress> addresslist, List<PValue> values, out List<ulong> errors)
-    {
-        lock (m_ioLock)
-        {
-            int res;
-            errors = [];
-            for (var i = 0; i < addresslist.Count; i++)
+                return (res, errors);
+            }
+            m_LastError = 0;
+            await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
+            if (m_LastError != 0)
             {
-                // Initialize to no error value, as there's no explicit value for write success.
-                errors.Add(0);
+                return (m_LastError, errors);
             }
 
-            // Split request into chunks, taking the MaxTags per request into account
-            var chunk_startIndex = 0;
-            var count_perChunk = 0;
-            do
+            var setMultiVarRes = SetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
+            res = checkResponseWithIntegrity(setMultiVarReq, setMultiVarRes);
+            if (res != 0)
             {
-                var setMultiVarReq = new SetMultiVariablesRequest(ProtocolVersion.V2);
-                setMultiVarReq.AddressListVar.Clear();
-                setMultiVarReq.ValueList.Clear();
-                count_perChunk = 0;
-                while (count_perChunk < m_CommRessources.TagsPerWriteRequestMax && (chunk_startIndex + count_perChunk) < addresslist.Count)
-                {
-                    setMultiVarReq.AddressListVar.Add(addresslist[chunk_startIndex + count_perChunk]);
-                    setMultiVarReq.ValueList.Add(values[chunk_startIndex + count_perChunk]);
-                    count_perChunk++;
-                }
+                return (res, errors);
+            }
+            // ReturnValue shows also an error, if only one single variable could not be written
+            if (setMultiVarRes.ReturnValue != 0)
+            {
+                log.LogDebug($"S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={setMultiVarRes.ReturnValue}");
+            }
 
-                res = SendS7plusFunctionObject(setMultiVarReq);
-                if (res != 0)
-                {
-                    return res;
-                }
-                m_LastError = 0;
-                WaitForNewS7plusReceived(m_ReadTimeout);
-                if (m_LastError != 0)
-                {
-                    return m_LastError;
-                }
+            foreach (var ev in setMultiVarRes.ErrorValues)
+            {
+                errors[chunk_startIndex + (int)ev.Key - 1] = ev.Value;
+            }
+            chunk_startIndex += count_perChunk;
 
-                var setMultiVarRes = SetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
-                res = checkResponseWithIntegrity(setMultiVarReq, setMultiVarRes);
-                if (res != 0)
-                {
-                    return res;
-                }
-                // ReturnValue shows also an error, if only one single variable could not be written
-                if (setMultiVarRes.ReturnValue != 0)
-                {
-                    log.LogDebug($"S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={setMultiVarRes.ReturnValue}");
-                }
+        } while (chunk_startIndex < addresslist.Count);
 
-                foreach (var ev in setMultiVarRes.ErrorValues)
-                {
-                    errors[chunk_startIndex + (int)ev.Key - 1] = ev.Value;
-                }
-                chunk_startIndex += count_perChunk;
-
-            } while (chunk_startIndex < addresslist.Count);
-
-            return m_LastError;
-        }
+        return (m_LastError, errors);
     }
 
-    public int SetPlcOperatingState(int state)
+    public async Task<int> SetPlcOperatingStateAsync(int state, CancellationToken ct = default)
     {
         int res;
         var setVarReq = new SetVariableRequest(ProtocolVersion.V2)
@@ -727,7 +735,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -745,191 +753,188 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         return 0;
     }
 
-    public int Browse(out List<VarInfo> varInfoList)
+    public async Task<(int res, List<VarInfo> varInfoList)> BrowseAsync(CancellationToken ct = default)
     {
-        lock (m_ioLock)
+        int res;
+        var varInfoList = new List<VarInfo>();
+        var vars = new Browser();
+        ExploreRequest exploreReq;
+        ExploreResponse exploreRes;
+
+        #region Read all objects
+
+        var exploreData = new List<BrowseData>();
+
+        exploreReq = new ExploreRequest(ProtocolVersion.V2)
         {
-            int res;
-            varInfoList = [];
-            var vars = new Browser();
-            ExploreRequest exploreReq;
-            ExploreResponse exploreRes;
+            ExploreId = Ids.NativeObjects_thePLCProgram_Rid,
+            ExploreRequestId = Ids.None,
+            ExploreChildsRecursive = 1,
+            ExploreParents = 0
+        };
 
-            #region Read all objects
+        // We want to know the following attributes
+        exploreReq.AddressList.Add(Ids.ObjectVariableTypeName);
+        exploreReq.AddressList.Add(Ids.Block_BlockNumber);
+        exploreReq.AddressList.Add(Ids.ASObjectES_Comment);
 
-            var exploreData = new List<BrowseData>();
-
-            exploreReq = new ExploreRequest(ProtocolVersion.V2)
-            {
-                ExploreId = Ids.NativeObjects_thePLCProgram_Rid,
-                ExploreRequestId = Ids.None,
-                ExploreChildsRecursive = 1,
-                ExploreParents = 0
-            };
-
-            // We want to know the following attributes
-            exploreReq.AddressList.Add(Ids.ObjectVariableTypeName);
-            exploreReq.AddressList.Add(Ids.Block_BlockNumber);
-            exploreReq.AddressList.Add(Ids.ASObjectES_Comment);
-
-            res = SendS7plusFunctionObject(exploreReq);
-            if (res != 0)
-            {
-                return res;
-            }
-            m_LastError = 0;
-            WaitForNewS7plusReceived(m_ReadTimeout);
-            if (m_LastError != 0)
-            {
-                return m_LastError;
-            }
-
-            exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-            res = checkResponseWithIntegrity(exploreReq, exploreRes);
-            if (res != 0)
-            {
-                return res;
-            }
-
-            #endregion
-
-            #region Evaluate all data blocks that then need to be browsed
-
-            var obj = exploreRes.Objects.First(o => o.ClassId == Ids.PLCProgram_Class_Rid);
-
-            foreach (var ob in obj.GetObjects())
-            {
-                switch (ob.ClassId)
-                {
-                    case Ids.DB_Class_Rid:
-                        var relid = ob.RelationId;
-                        var area = relid >> 16;
-                        var num = relid & 0xffff;
-                        if (area == 0x8a0e)
-                        {
-                            var name = (ValueWString)ob.GetAttribute(Ids.ObjectVariableTypeName);
-                            var data = new BrowseData
-                            {
-                                db_block_relid = relid,
-                                db_name = name.GetValue(),
-                                db_number = num
-                            };
-                            exploreData.Add(data);
-                        }
-                        break;
-                }
-            }
-
-            #endregion
-
-            #region Determine the TypeInfo RID to the RelId from the first response
-            // By querying LID = 1 from all DBs you get the RID back with which the type information can be queried.
-            // This is neccessary because, for example, with instance DBs (e.g. TON), the type information must
-            // not be accessed via the RID of the DB, but of the RID of the TON.
-            var readlist = new List<ItemAddress>();
-            var values = new List<object>();
-            var errors = new List<ulong>();
-
-            foreach (var data in exploreData)
-            {
-                if (data.db_number > 0) // only process datablocks here, no marker, timer etc.
-                {
-                    // Insert the variable address
-                    var adr1 = new ItemAddress
-                    {
-                        AccessArea = data.db_block_relid,
-                        AccessSubArea = Ids.DB_ValueActual
-                    };
-                    adr1.LID.Add(1);
-                    readlist.Add(adr1);
-                }
-            }
-            res = ReadValues(readlist, out values, out errors);
-            if (res != 0)
-            {
-                return res;
-            }
-            #endregion
-
-            #region Pass the preliminary information for recombination to ExploreSymbols
-
-            // Add the response information to the list
-            for (var i = 0; i < values.Count; i++)
-            {
-                if (errors[i] == 0)
-                {
-                    var rid = (ValueRID)values[i];
-                    var data = exploreData[i];
-                    data.db_block_ti_relid = rid.GetValue();
-                    exploreData[i] = data;
-                }
-                else
-                {
-                    // On error, set the relid to zero, will be removed from the list in the next step.
-                    // TODO: Report this as an error?
-                    var data = exploreData[i];
-                    data.db_block_ti_relid = 0;
-                    exploreData[i] = data;
-                }
-            }
-            // Remove elements with db_block_ti_relid == 0. This occurs e.g. on datablocks only present in load memory.
-            // The informations can't be used any further (at least not for variable access).
-            exploreData.RemoveAll(item => item.db_block_ti_relid == 0);
-
-            foreach (var ed in exploreData)
-            {
-                vars.AddBlockNode(eNodeType.Root, ed.db_name, ed.db_block_relid, ed.db_block_ti_relid);
-            }
-
-            // Add IQMCT areas manually
-            vars.AddBlockNode(eNodeType.Root, "IArea", Ids.NativeObjects_theIArea_Rid, 0x90010000);
-            vars.AddBlockNode(eNodeType.Root, "QArea", Ids.NativeObjects_theQArea_Rid, 0x90020000);
-            vars.AddBlockNode(eNodeType.Root, "MArea", Ids.NativeObjects_theMArea_Rid, 0x90030000);
-            vars.AddBlockNode(eNodeType.Root, "S7Timers", Ids.NativeObjects_theS7Timers_Rid, 0x90050000);
-            vars.AddBlockNode(eNodeType.Root, "S7Counters", Ids.NativeObjects_theS7Counters_Rid, 0x90060000);
-
-            #endregion
-
-            #region Read the Type Info Container (as a single big PDU, must be proven to be the way to go in big programs)
-            exploreReq = new ExploreRequest(ProtocolVersion.V2)
-            {
-                // With ObjectOMSTypeInfoContainer we get all in a big PDU (with maybe hundreds of fragments)
-                ExploreId = Ids.ObjectOMSTypeInfoContainer,
-                ExploreRequestId = Ids.None,
-                ExploreChildsRecursive = 1,
-                ExploreParents = 0
-            };
-
-            res = SendS7plusFunctionObject(exploreReq);
-            if (res != 0)
-            {
-                return res;
-            }
-            m_LastError = 0;
-            WaitForNewS7plusReceived(m_ReadTimeout);
-            if (m_LastError != 0)
-            {
-                return m_LastError;
-            }
-            #endregion
-
-            #region Process the response, and build the complete variables list
-            exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-            res = checkResponseWithIntegrity(exploreReq, exploreRes);
-            if (res != 0)
-            {
-                return res;
-            }
-            var objs = exploreRes.Objects.First(o => o.ClassId == Ids.ClassOMSTypeInfoContainer);
-
-            vars.SetTypeInfoContainerObjects(objs.GetObjects());
-            vars.BuildTree();
-            vars.BuildFlatList();
-            varInfoList = vars.VarInfoList;
-            #endregion
-
-            return 0;
+        res = SendS7plusFunctionObject(exploreReq);
+        if (res != 0)
+        {
+            return (res, varInfoList);
         }
+        m_LastError = 0;
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
+        if (m_LastError != 0)
+        {
+            return (m_LastError, varInfoList);
+        }
+
+        exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
+        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        if (res != 0)
+        {
+            return (res, varInfoList);
+        }
+
+        #endregion
+
+        #region Evaluate all data blocks that then need to be browsed
+
+        var obj = exploreRes.Objects.First(o => o.ClassId == Ids.PLCProgram_Class_Rid);
+
+        foreach (var ob in obj.GetObjects())
+        {
+            switch (ob.ClassId)
+            {
+                case Ids.DB_Class_Rid:
+                    var relid = ob.RelationId;
+                    var area = relid >> 16;
+                    var num = relid & 0xffff;
+                    if (area == 0x8a0e)
+                    {
+                        var name = (ValueWString)ob.GetAttribute(Ids.ObjectVariableTypeName);
+                        var data = new BrowseData
+                        {
+                            db_block_relid = relid,
+                            db_name = name.GetValue(),
+                            db_number = num
+                        };
+                        exploreData.Add(data);
+                    }
+                    break;
+            }
+        }
+
+        #endregion
+
+        #region Determine the TypeInfo RID to the RelId from the first response
+        // By querying LID = 1 from all DBs you get the RID back with which the type information can be queried.
+        // This is neccessary because, for example, with instance DBs (e.g. TON), the type information must
+        // not be accessed via the RID of the DB, but of the RID of the TON.
+        var readlist = new List<ItemAddress>();
+        List<object> values;
+        List<ulong> errors;
+
+        foreach (var data in exploreData)
+        {
+            if (data.db_number > 0) // only process datablocks here, no marker, timer etc.
+            {
+                // Insert the variable address
+                var adr1 = new ItemAddress
+                {
+                    AccessArea = data.db_block_relid,
+                    AccessSubArea = Ids.DB_ValueActual
+                };
+                adr1.LID.Add(1);
+                readlist.Add(adr1);
+            }
+        }
+        (res, values, errors) = await ReadValuesAsync(readlist, ct).ConfigureAwait(false);
+        if (res != 0)
+        {
+            return (res, varInfoList);
+        }
+        #endregion
+
+        #region Pass the preliminary information for recombination to ExploreSymbols
+
+        // Add the response information to the list
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (errors[i] == 0)
+            {
+                var rid = (ValueRID)values[i];
+                var data = exploreData[i];
+                data.db_block_ti_relid = rid.GetValue();
+                exploreData[i] = data;
+            }
+            else
+            {
+                // On error, set the relid to zero, will be removed from the list in the next step.
+                // TODO: Report this as an error?
+                var data = exploreData[i];
+                data.db_block_ti_relid = 0;
+                exploreData[i] = data;
+            }
+        }
+        // Remove elements with db_block_ti_relid == 0. This occurs e.g. on datablocks only present in load memory.
+        // The informations can't be used any further (at least not for variable access).
+        exploreData.RemoveAll(item => item.db_block_ti_relid == 0);
+
+        foreach (var ed in exploreData)
+        {
+            vars.AddBlockNode(eNodeType.Root, ed.db_name, ed.db_block_relid, ed.db_block_ti_relid);
+        }
+
+        // Add IQMCT areas manually
+        vars.AddBlockNode(eNodeType.Root, "IArea", Ids.NativeObjects_theIArea_Rid, 0x90010000);
+        vars.AddBlockNode(eNodeType.Root, "QArea", Ids.NativeObjects_theQArea_Rid, 0x90020000);
+        vars.AddBlockNode(eNodeType.Root, "MArea", Ids.NativeObjects_theMArea_Rid, 0x90030000);
+        vars.AddBlockNode(eNodeType.Root, "S7Timers", Ids.NativeObjects_theS7Timers_Rid, 0x90050000);
+        vars.AddBlockNode(eNodeType.Root, "S7Counters", Ids.NativeObjects_theS7Counters_Rid, 0x90060000);
+
+        #endregion
+
+        #region Read the Type Info Container (as a single big PDU, must be proven to be the way to go in big programs)
+        exploreReq = new ExploreRequest(ProtocolVersion.V2)
+        {
+            // With ObjectOMSTypeInfoContainer we get all in a big PDU (with maybe hundreds of fragments)
+            ExploreId = Ids.ObjectOMSTypeInfoContainer,
+            ExploreRequestId = Ids.None,
+            ExploreChildsRecursive = 1,
+            ExploreParents = 0
+        };
+
+        res = SendS7plusFunctionObject(exploreReq);
+        if (res != 0)
+        {
+            return (res, varInfoList);
+        }
+        m_LastError = 0;
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
+        if (m_LastError != 0)
+        {
+            return (m_LastError, varInfoList);
+        }
+        #endregion
+
+        #region Process the response, and build the complete variables list
+        exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
+        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        if (res != 0)
+        {
+            return (res, varInfoList);
+        }
+        var objs = exploreRes.Objects.First(o => o.ClassId == Ids.ClassOMSTypeInfoContainer);
+
+        vars.SetTypeInfoContainerObjects(objs.GetObjects());
+        vars.BuildTree();
+        vars.BuildFlatList();
+        varInfoList = vars.VarInfoList;
+        #endregion
+
+        return (0, varInfoList);
     }
 
     /// <summary>
@@ -938,38 +943,27 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="symbol">plc tag symbol</param>
     /// <returns>The first level of the symbol string</returns>
     /// <exception cref="Exception">Symbol syntax error</exception>
-    private static string parseSymbolLevel(ref string symbol)
+    // 符号游标：替代异步方法中无法使用的 ref string，按引用语义在各级解析间传递与消费符号字符串。
+    private sealed class SymbolRef(string value)
     {
-        if (symbol.StartsWith('"'))
+        public string Value = value;
+    }
+
+    private static string parseSymbolLevel(SymbolRef symbolRef)
+    {
+        var symbol = symbolRef.Value;
+        try
         {
-            var idx = symbol.IndexOf('"', 1);
-            if (idx < 0)
+            if (symbol.StartsWith('"'))
             {
-                throw new Exception("Symbol syntax error");
-            }
+                var idx = symbol.IndexOf('"', 1);
+                if (idx < 0)
+                {
+                    throw new Exception("Symbol syntax error");
+                }
 
-            var lvl = symbol[1..idx];
-            symbol = symbol[(idx + 1)..];
-            if (symbol.StartsWith('.'))
-            {
-                symbol = symbol[1..];
-            }
-
-            return lvl;
-        }
-        else
-        {
-            var idx = symbol.IndexOf('.');
-            var idx2 = symbol.IndexOf('[', 1);
-            if (idx2 >= 0 && (idx2 < idx || idx < 0))
-            {
-                idx = idx2;
-            }
-
-            if (idx >= 0)
-            {
-                var lvl = symbol[..idx];
-                symbol = symbol[idx..];
+                var lvl = symbol[1..idx];
+                symbol = symbol[(idx + 1)..];
                 if (symbol.StartsWith('.'))
                 {
                     symbol = symbol[1..];
@@ -979,10 +973,35 @@ internal sealed partial class S7CommPlusConnection : IDisposable
             }
             else
             {
-                var lvl = symbol;
-                symbol = "";
-                return lvl;
+                var idx = symbol.IndexOf('.');
+                var idx2 = symbol.IndexOf('[', 1);
+                if (idx2 >= 0 && (idx2 < idx || idx < 0))
+                {
+                    idx = idx2;
+                }
+
+                if (idx >= 0)
+                {
+                    var lvl = symbol[..idx];
+                    symbol = symbol[idx..];
+                    if (symbol.StartsWith('.'))
+                    {
+                        symbol = symbol[1..];
+                    }
+
+                    return lvl;
+                }
+                else
+                {
+                    var lvl = symbol;
+                    symbol = "";
+                    return lvl;
+                }
             }
+        }
+        finally
+        {
+            symbolRef.Value = symbol;
         }
     }
 
@@ -993,14 +1012,14 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="ti_relid">type info relid</param>
     /// <returns>type info</returns>
     /// <exception cref="Exception">Could not get type info</exception>
-    internal PObject? GetTypeInfoByRelId(uint ti_relid)
+    internal async Task<PObject?> GetTypeInfoByRelIdAsync(uint ti_relid, CancellationToken ct = default)
     {
         var pObj = typeInfoList.Find(ti => ti.RelationId == ti_relid);
         if (pObj == null)
         {
             // Type info not found in list, request it from plc
-            List<PObject> newPObj = [];
-            if (GetTypeInformation(ti_relid, out newPObj) != 0)
+            var (res, newPObj) = await GetTypeInformationAsync(ti_relid, ct).ConfigureAwait(false);
+            if (res != 0)
             {
                 throw new Exception("Could not get type info");
             }
@@ -1019,15 +1038,15 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="varType">Var type that holds the dim info</param>
     /// <param name="varInfo">used to build access sequence</param>
     /// <exception cref="Exception">Symbol syntax error</exception>
-    private static void CalcAccessSeqFor1DimArray(ref string symbol, PVartypeListElement varType, VarInfo varInfo)
+    private static void CalcAccessSeqFor1DimArray(SymbolRef symbol, PVartypeListElement varType, VarInfo varInfo)
     {
-        var m = SingleDimensionIndexRegex.Match(symbol);
+        var m = SingleDimensionIndexRegex.Match(symbol.Value);
         if (!m.Success)
         {
             throw new Exception("Symbol syntax error");
         }
 
-        parseSymbolLevel(ref symbol); // remove index from symbol string
+        parseSymbolLevel(symbol); // remove index from symbol string
         var arrayIndex = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
 
         var ioit = varType.OffsetInfoType as IOffsetInfoType_1Dim;
@@ -1058,15 +1077,15 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="varType">Var type that holds the dim info</param>
     /// <param name="varInfo">used to build access sequence</param>
     /// <exception cref="Exception">Symbol syntax error</exception>
-    private static void CalcAccessSeqForMDimArray(ref string symbol, PVartypeListElement varType, VarInfo varInfo)
+    private static void CalcAccessSeqForMDimArray(SymbolRef symbol, PVartypeListElement varType, VarInfo varInfo)
     {
-        var m = MultiDimensionIndexRegex.Match(symbol);
+        var m = MultiDimensionIndexRegex.Match(symbol.Value);
         if (!m.Success)
         {
             throw new Exception("Symbol syntax error");
         }
 
-        parseSymbolLevel(ref symbol); // remove index from symbol string
+        parseSymbolLevel(symbol); // remove index from symbol string
         var idxs = m.Groups[1].Value.Replace(" ", "", StringComparison.InvariantCulture);
 
         var indexes = Array.ConvertAll(idxs.Split(','), e => int.Parse(e, CultureInfo.InvariantCulture));
@@ -1131,10 +1150,10 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="varInfo">used to build access sequence</param>
     /// <returns>plc tag or null if not found</returns>
     /// <exception cref="Exception">Symbol syntax error, Out of bounds</exception>
-    private PlcTag? BrowsePlcTagBySymbol(uint ti_relid, ref string symbol, VarInfo varInfo)
+    private async Task<PlcTag?> BrowsePlcTagBySymbolAsync(uint ti_relid, SymbolRef symbol, VarInfo varInfo, CancellationToken ct = default)
     {
-        var pObj = GetTypeInfoByRelId(ti_relid) ?? throw new Exception("Could not get type info");
-        var levelName = parseSymbolLevel(ref symbol);
+        var pObj = await GetTypeInfoByRelIdAsync(ti_relid, ct).ConfigureAwait(false) ?? throw new Exception("Could not get type info");
+        var levelName = parseSymbolLevel(symbol);
         // find level name of symbol in var list
         var idx = pObj.VarnameList?.Names?.IndexOf(levelName) ?? -1;
         if (idx < 0)
@@ -1147,33 +1166,33 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         var is1Dim = false;
         if (varType.OffsetInfoType.Is1Dim())
         {
-            if (string.IsNullOrEmpty(symbol))
+            if (string.IsNullOrEmpty(symbol.Value))
             {
                 is1Dim = true;
             }
             else
             {
-                CalcAccessSeqFor1DimArray(ref symbol, varType, varInfo);
+                CalcAccessSeqFor1DimArray(symbol, varType, varInfo);
             }
         }
         if (varType.OffsetInfoType.IsMDim())
         {
-            CalcAccessSeqForMDimArray(ref symbol, varType, varInfo);
+            CalcAccessSeqForMDimArray(symbol, varType, varInfo);
         }
         if (varType.OffsetInfoType.HasRelation())
         {
-            if (symbol.Length <= 0 && varType.Softdatatype == Softdatatype.S7COMMP_SOFTDATATYPE_DTL)
+            if (symbol.Value.Length <= 0 && varType.Softdatatype == Softdatatype.S7COMMP_SOFTDATATYPE_DTL)
             {
                 return PlcTags.TagFactory(varInfo.Name, new ItemAddress(varInfo.AccessSequence), varType.Softdatatype, is1Dim, log);
             }
-            if (symbol.Length <= 0)
+            if (symbol.Value.Length <= 0)
             {
                 return null;
             }
             else
             {
                 var ioit = (IOffsetInfoType_Relation)varType.OffsetInfoType;
-                return BrowsePlcTagBySymbol(ioit.GetRelationId(), ref symbol, varInfo);
+                return await BrowsePlcTagBySymbolAsync(ioit.GetRelationId(), symbol, varInfo, ct).ConfigureAwait(false);
             }
         }
         else
@@ -1187,59 +1206,59 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// </summary>
     /// <param name="symbol">plc tag symbol</param>
     /// <returns>plc tag, returns null if plc tag could not be found</returns>
-    public PlcTag? GetPlcTagBySymbol(string symbol)
+    public async Task<PlcTag?> GetPlcTagBySymbolAsync(string symbol, CancellationToken ct = default)
     {
-        lock (m_ioLock)
+        var varInfo = new VarInfo
         {
-            var varInfo = new VarInfo
-            {
-                Name = symbol
-            };
-            // make sure we have the db list
-            if (dbInfoList == null)
-            {
-                if (GetListOfDatablocks(out dbInfoList) != 0) { return null; }
-            }
-            var levelName = parseSymbolLevel(ref symbol);
-            // find db by first level name of symbol
-            var dbInfo = dbInfoList.Find(dbi => dbi.db_name == levelName);
-            if (dbInfo != null)
-            {
-                varInfo.AccessSequence = $"{dbInfo.db_block_relid:X}";
-                return BrowsePlcTagBySymbol(dbInfo.db_block_ti_relid, ref symbol, varInfo);
-            }
-            else
-            {
-                symbol = varInfo.Name;
-                // Merker
-                varInfo.AccessSequence = $"{Ids.NativeObjects_theMArea_Rid:X}";
-                var tag = BrowsePlcTagBySymbol(0x90030000, ref symbol, varInfo);
-                if (tag != null)
-                {
-                    return tag;
-                }
-
-                symbol = varInfo.Name;
-                // Outputs
-                varInfo.AccessSequence = $"{Ids.NativeObjects_theQArea_Rid:X}";
-                tag = BrowsePlcTagBySymbol(0x90020000, ref symbol, varInfo);
-                if (tag != null)
-                {
-                    return tag;
-                }
-
-                symbol = varInfo.Name;
-                // Inputs
-                varInfo.AccessSequence = $"{Ids.NativeObjects_theIArea_Rid:X}";
-                tag = BrowsePlcTagBySymbol(0x90010000, ref symbol, varInfo);
-                if (tag != null)
-                {
-                    return tag;
-                }
-                // TODO: implement s5timers and counters... no one uses them anymore anyway
-            }
-            return null;
+            Name = symbol
+        };
+        // make sure we have the db list
+        if (dbInfoList == null)
+        {
+            int r;
+            (r, dbInfoList) = await GetListOfDatablocksAsync(ct).ConfigureAwait(false);
+            if (r != 0) { return null; }
         }
+        var sym = new SymbolRef(symbol);
+        var levelName = parseSymbolLevel(sym);
+        // find db by first level name of symbol
+        var dbInfo = dbInfoList.Find(dbi => dbi.db_name == levelName);
+        if (dbInfo != null)
+        {
+            varInfo.AccessSequence = $"{dbInfo.db_block_relid:X}";
+            return await BrowsePlcTagBySymbolAsync(dbInfo.db_block_ti_relid, sym, varInfo, ct).ConfigureAwait(false);
+        }
+        else
+        {
+            sym.Value = varInfo.Name;
+            // Merker
+            varInfo.AccessSequence = $"{Ids.NativeObjects_theMArea_Rid:X}";
+            var tag = await BrowsePlcTagBySymbolAsync(0x90030000, sym, varInfo, ct).ConfigureAwait(false);
+            if (tag != null)
+            {
+                return tag;
+            }
+
+            sym.Value = varInfo.Name;
+            // Outputs
+            varInfo.AccessSequence = $"{Ids.NativeObjects_theQArea_Rid:X}";
+            tag = await BrowsePlcTagBySymbolAsync(0x90020000, sym, varInfo, ct).ConfigureAwait(false);
+            if (tag != null)
+            {
+                return tag;
+            }
+
+            sym.Value = varInfo.Name;
+            // Inputs
+            varInfo.AccessSequence = $"{Ids.NativeObjects_theIArea_Rid:X}";
+            tag = await BrowsePlcTagBySymbolAsync(0x90010000, sym, varInfo, ct).ConfigureAwait(false);
+            if (tag != null)
+            {
+                return tag;
+            }
+            // TODO: implement s5timers and counters... no one uses them anymore anyway
+        }
+        return null;
     }
 
     internal class BrowseEntry
@@ -1268,179 +1287,173 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         public uint db_block_ti_relid { get; set; }                                // Type-Info RID of the datablock
     };
 
-    internal int GetListOfDatablocks(out List<DatablockInfo> dbInfoList)
+    internal async Task<(int res, List<DatablockInfo> dbInfoList)> GetListOfDatablocksAsync(CancellationToken ct = default)
     {
-        lock (m_ioLock)
+        int res;
+
+        var dbInfoList = new List<DatablockInfo>();
+
+        var exploreReq = new ExploreRequest(ProtocolVersion.V2)
         {
-            int res;
+            ExploreId = Ids.NativeObjects_thePLCProgram_Rid,
+            ExploreRequestId = Ids.None,
+            ExploreChildsRecursive = 1,
+            ExploreParents = 0
+        };
 
-            dbInfoList = [];
+        // Add the attributes we need in the response
+        exploreReq.AddressList.Add(Ids.ObjectVariableTypeName);
 
-            var exploreReq = new ExploreRequest(ProtocolVersion.V2)
-            {
-                ExploreId = Ids.NativeObjects_thePLCProgram_Rid,
-                ExploreRequestId = Ids.None,
-                ExploreChildsRecursive = 1,
-                ExploreParents = 0
-            };
+        // Set filter on Id for Datablock Class RID. With this filter, we only
+        // get informations from datablocks, and not other blocks we don't need here.
+        var filter = new ValueStruct(Ids.Filter);
+        filter.AddStructElement(Ids.FilterOperation, new ValueDInt(8)); // 8 = InstanceIOf
+        filter.AddStructElement(Ids.AddressCount, new ValueUDInt(0));
+        var faddress = new uint[32]; // Unknown, possible dependant on FilterOperation
+        filter.AddStructElement(Ids.Address, new ValueUDIntArray(faddress));
+        filter.AddStructElement(Ids.FilterValue, new ValueRID(Ids.DB_Class_Rid));
 
-            // Add the attributes we need in the response
-            exploreReq.AddressList.Add(Ids.ObjectVariableTypeName);
+        exploreReq.FilterData = filter;
 
-            // Set filter on Id for Datablock Class RID. With this filter, we only
-            // get informations from datablocks, and not other blocks we don't need here.
-            var filter = new ValueStruct(Ids.Filter);
-            filter.AddStructElement(Ids.FilterOperation, new ValueDInt(8)); // 8 = InstanceIOf
-            filter.AddStructElement(Ids.AddressCount, new ValueUDInt(0));
-            var faddress = new uint[32]; // Unknown, possible dependant on FilterOperation
-            filter.AddStructElement(Ids.Address, new ValueUDIntArray(faddress));
-            filter.AddStructElement(Ids.FilterValue, new ValueRID(Ids.DB_Class_Rid));
-
-            exploreReq.FilterData = filter;
-
-            res = SendS7plusFunctionObject(exploreReq);
-            if (res != 0)
-            {
-                return res;
-            }
-            m_LastError = 0;
-            WaitForNewS7plusReceived(m_ReadTimeout);
-            if (m_LastError != 0)
-            {
-                return m_LastError;
-            }
-
-            var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-            res = checkResponseWithIntegrity(exploreReq, exploreRes);
-            if (res != 0)
-            {
-                return res;
-            }
-
-            // Get the datablock information we want further informations from.
-            var objList = exploreRes.Objects;
-
-            foreach (var ob in objList)
-            {
-                // May be this check can be removed, if setting the filter to the DB_Class_Rid is working 100%.
-                switch (ob.ClassId)
-                {
-                    case Ids.DB_Class_Rid:
-                        var relid = ob.RelationId;
-                        var area = relid >> 16;
-                        var num = relid & 0xffff;
-                        if (area == 0x8a0e)
-                        {
-                            var name = (ValueWString)ob.GetAttribute(Ids.ObjectVariableTypeName);
-                            var data = new DatablockInfo
-                            {
-                                db_block_relid = relid,
-                                db_name = name.GetValue(),
-                                db_number = num
-                            };
-                            dbInfoList.Add(data);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-            }
-
-            // Get the TypeInfo RID to RelId from the first response
-
-            // With LID=1 we get the RID back. With this number we can explore further 
-            // informations of this datablock.
-            // This is neccessary, because informations about instance DBs (e.g. TON) you
-            // don't get by the RID of the DB, instead of exploring the TON Type RID.
-            var readlist = new List<ItemAddress>();
-            var values = new List<object>();
-            var errors = new List<ulong>();
-
-            foreach (var data in dbInfoList)
-            {
-                if (data.db_number > 0)
-                {
-                    // Insert the address
-                    var adr1 = new ItemAddress
-                    {
-                        AccessArea = data.db_block_relid,
-                        AccessSubArea = Ids.DB_ValueActual
-                    };
-                    adr1.LID.Add(1);
-                    readlist.Add(adr1);
-                }
-            }
-            res = ReadValues(readlist, out values, out errors);
-            if (res != 0)
-            {
-                return res;
-            }
-
-            // Insert response data into the list
-            for (var i = 0; i < values.Count; i++)
-            {
-                if (errors[i] == 0)
-                {
-                    var rid = (ValueRID)values[i];
-                    var data = dbInfoList[i];
-                    data.db_block_ti_relid = rid.GetValue();
-                    dbInfoList[i] = data;
-                }
-                else
-                {
-                    // On error, set relid=0, which is then removed in the next step.
-                    // Should we report this for the user?
-                    var data = dbInfoList[i];
-                    data.db_block_ti_relid = 0;
-                    dbInfoList[i] = data;
-                }
-            }
-
-            // Remove elements with db_block_ti_relid == 0.
-            // This can occur on datablocks which are only in load memory and can't be explored.
-            dbInfoList.RemoveAll(item => item.db_block_ti_relid == 0);
-
-            return 0;
+        res = SendS7plusFunctionObject(exploreReq);
+        if (res != 0)
+        {
+            return (res, dbInfoList);
         }
+        m_LastError = 0;
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
+        if (m_LastError != 0)
+        {
+            return (m_LastError, dbInfoList);
+        }
+
+        var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
+        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        if (res != 0)
+        {
+            return (res, dbInfoList);
+        }
+
+        // Get the datablock information we want further informations from.
+        var objList = exploreRes.Objects;
+
+        foreach (var ob in objList)
+        {
+            // May be this check can be removed, if setting the filter to the DB_Class_Rid is working 100%.
+            switch (ob.ClassId)
+            {
+                case Ids.DB_Class_Rid:
+                    var relid = ob.RelationId;
+                    var area = relid >> 16;
+                    var num = relid & 0xffff;
+                    if (area == 0x8a0e)
+                    {
+                        var name = (ValueWString)ob.GetAttribute(Ids.ObjectVariableTypeName);
+                        var data = new DatablockInfo
+                        {
+                            db_block_relid = relid,
+                            db_name = name.GetValue(),
+                            db_number = num
+                        };
+                        dbInfoList.Add(data);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // Get the TypeInfo RID to RelId from the first response
+
+        // With LID=1 we get the RID back. With this number we can explore further
+        // informations of this datablock.
+        // This is neccessary, because informations about instance DBs (e.g. TON) you
+        // don't get by the RID of the DB, instead of exploring the TON Type RID.
+        var readlist = new List<ItemAddress>();
+        List<object> values;
+        List<ulong> errors;
+
+        foreach (var data in dbInfoList)
+        {
+            if (data.db_number > 0)
+            {
+                // Insert the address
+                var adr1 = new ItemAddress
+                {
+                    AccessArea = data.db_block_relid,
+                    AccessSubArea = Ids.DB_ValueActual
+                };
+                adr1.LID.Add(1);
+                readlist.Add(adr1);
+            }
+        }
+        (res, values, errors) = await ReadValuesAsync(readlist, ct).ConfigureAwait(false);
+        if (res != 0)
+        {
+            return (res, dbInfoList);
+        }
+
+        // Insert response data into the list
+        for (var i = 0; i < values.Count; i++)
+        {
+            if (errors[i] == 0)
+            {
+                var rid = (ValueRID)values[i];
+                var data = dbInfoList[i];
+                data.db_block_ti_relid = rid.GetValue();
+                dbInfoList[i] = data;
+            }
+            else
+            {
+                // On error, set relid=0, which is then removed in the next step.
+                // Should we report this for the user?
+                var data = dbInfoList[i];
+                data.db_block_ti_relid = 0;
+                dbInfoList[i] = data;
+            }
+        }
+
+        // Remove elements with db_block_ti_relid == 0.
+        // This can occur on datablocks which are only in load memory and can't be explored.
+        dbInfoList.RemoveAll(item => item.db_block_ti_relid == 0);
+
+        return (0, dbInfoList);
     }
 
-    internal int GetTypeInformation(uint exploreId, out List<PObject> objList)
+    internal async Task<(int res, List<PObject> objList)> GetTypeInformationAsync(uint exploreId, CancellationToken ct = default)
     {
-        lock (m_ioLock)
+        int res;
+        var objList = new List<PObject>();
+
+        var exploreReq = new ExploreRequest(ProtocolVersion.V2)
         {
-            int res;
-            objList = [];
+            ExploreId = exploreId,
+            ExploreRequestId = Ids.None,
+            ExploreChildsRecursive = 1,
+            ExploreParents = 0
+        };
 
-            var exploreReq = new ExploreRequest(ProtocolVersion.V2)
-            {
-                ExploreId = exploreId,
-                ExploreRequestId = Ids.None,
-                ExploreChildsRecursive = 1,
-                ExploreParents = 0
-            };
-
-            res = SendS7plusFunctionObject(exploreReq);
-            if (res != 0)
-            {
-                return res;
-            }
-            m_LastError = 0;
-            WaitForNewS7plusReceived(m_ReadTimeout);
-            if (m_LastError != 0)
-            {
-                return m_LastError;
-            }
-
-            var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-            res = checkResponseWithIntegrity(exploreReq, exploreRes);
-            if (res != 0)
-            {
-                return res;
-            }
-            objList = exploreRes.Objects;
-
-            return 0;
+        res = SendS7plusFunctionObject(exploreReq);
+        if (res != 0)
+        {
+            return (res, objList);
         }
+        m_LastError = 0;
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
+        if (m_LastError != 0)
+        {
+            return (m_LastError, objList);
+        }
+
+        var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
+        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        if (res != 0)
+        {
+            return (res, objList);
+        }
+        objList = exploreRes.Objects;
+
+        return (0, objList);
     }
 
     /// <summary>
@@ -1460,14 +1473,14 @@ internal sealed partial class S7CommPlusConnection : IDisposable
     /// <param name="xml_linecomment"></param>
     /// <param name="xml_dbcomment"></param>
     /// <returns>0 if no error</returns>
-    public int GetCommentsXml(uint relid, out string xml_linecomment, out string xml_dbcomment)
+    public async Task<(int res, string xml_linecomment, string xml_dbcomment)> GetCommentsXmlAsync(uint relid, CancellationToken ct = default)
     {
         int res;
         // With requesting DataInterface_InterfaceDescription, whe would be able to get all informations like the access ids and
         // datatype informations, that we get from the other browsing method. Needs to be tested which one is more efficient on network traffic or plc load.
         // If we keep use browsing for the comments, at least we would be able to read all information in one request.
-        xml_linecomment = string.Empty;
-        xml_dbcomment = string.Empty;
+        var xml_linecomment = string.Empty;
+        var xml_dbcomment = string.Empty;
 
         var exploreReq = new ExploreRequest(ProtocolVersion.V2)
         {
@@ -1484,20 +1497,20 @@ internal sealed partial class S7CommPlusConnection : IDisposable
         res = SendS7plusFunctionObject(exploreReq);
         if (res != 0)
         {
-            return res;
+            return (res, xml_linecomment, xml_dbcomment);
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
         if (m_LastError != 0)
         {
-            return m_LastError;
+            return (m_LastError, xml_linecomment, xml_dbcomment);
         }
 
         var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
         res = checkResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
-            return res;
+            return (res, xml_linecomment, xml_dbcomment);
         }
 
         foreach (var obj in exploreRes.Objects)
@@ -1526,7 +1539,7 @@ internal sealed partial class S7CommPlusConnection : IDisposable
                 }
             }
         }
-        return 0;
+        return (0, xml_linecomment, xml_dbcomment);
     }
 
     [GeneratedRegex(@"^\[(-?\d+)\]")]

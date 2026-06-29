@@ -15,7 +15,7 @@ internal sealed class CommRessources
     public int SubscriptionMemoryMax { get; private set; }
     public int SubscriptionMemoryFree { get; private set; }
 
-    public int ReadMax(S7CommPlusConnection conn)
+    public async Task<int> ReadMaxAsync(S7CommPlusConnection conn, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(conn, nameof(conn));
         var adrTagsPerReadRequestMax = new ItemAddress
@@ -65,7 +65,7 @@ internal sealed class CommRessources
         // Assumption (so far, because for all CPUs which have be seen both values were the same):
         // 1000 = Number for Reading
         // 1001 = Number for Writing
-        var res = conn.ReadValues(readlist, out var values, out var errors);
+        var (res, values, errors) = await conn.ReadValuesAsync(readlist, ct).ConfigureAwait(false);
         for (var i = 0; i < values.Count; i++)
         {
             if (values[i] != null && errors[i] == 0)
@@ -96,7 +96,7 @@ internal sealed class CommRessources
         return res;
     }
 
-    public int ReadFree(S7CommPlusConnection conn)
+    public async Task<int> ReadFreeAsync(S7CommPlusConnection conn, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(conn, nameof(conn));
         var adrPlcSubscriptionsFree = new ItemAddress
@@ -127,7 +127,7 @@ internal sealed class CommRessources
             adrSubscriptionMemoryFree
         };
 
-        var res = conn.ReadValues(readlist, out var values, out var errors);
+        var (res, values, errors) = await conn.ReadValuesAsync(readlist, ct).ConfigureAwait(false);
         for (var i = 0; i < values.Count; i++)
         {
             if (values[i] != null && errors[i] == 0)

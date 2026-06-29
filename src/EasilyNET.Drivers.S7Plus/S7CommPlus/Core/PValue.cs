@@ -2,6 +2,7 @@
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using Microsoft.Extensions.Logging;
 using System.Globalization;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
@@ -297,13 +298,13 @@ internal sealed class ValueBoolArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"BoolArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"BoolArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueBoolArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -406,13 +407,13 @@ internal sealed class ValueUSIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"USIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"USIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueUSIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -514,13 +515,13 @@ internal sealed class ValueUIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"UIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"UIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueUIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -630,13 +631,13 @@ internal sealed class ValueUDIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"UDIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"UDIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueUDIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -707,13 +708,13 @@ internal sealed class ValueUDIntSparseArray : PValue
 
     public override string ToString()
     {
-        var s = "<Value type =\"UDIntSparseArray\">";
+        var s = new StringBuilder("<Value type =\"UDIntSparseArray\">");
         foreach (var v in Value)
         {
-            s += $"<Value key=\"{v.Key}\">{v.Value}</Value>";
+            s.Append($"<Value key=\"{v.Key}\">{v.Value}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueUDIntSparseArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -831,13 +832,13 @@ internal sealed class ValueULIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"ULIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"ULIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueULIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -945,13 +946,13 @@ internal sealed class ValueSIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"SIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"SIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueSIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1054,13 +1055,13 @@ internal sealed class ValueIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"IntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"IntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1170,13 +1171,13 @@ internal sealed class ValueDIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"DIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"DIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueDIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1243,13 +1244,13 @@ internal sealed class ValueDIntSparseArray : PValue
 
     public override string ToString()
     {
-        var s = "<Value type =\"DIntSparseArray\">";
+        var s = new StringBuilder("<Value type =\"DIntSparseArray\">");
         foreach (var v in Value)
         {
-            s += $"<Value key=\"{v.Key}\">{v.Value}</Value>";
+            s.Append($"<Value key=\"{v.Key}\">{v.Value}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueDIntSparseArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1367,13 +1368,13 @@ internal sealed class ValueLIntArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"LIntArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"LIntArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueLIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1480,13 +1481,13 @@ internal sealed class ValueByteArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"ByteArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"ByteArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueByteArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1588,13 +1589,13 @@ internal sealed class ValueWordArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"WordArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"WordArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueWordArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1696,13 +1697,13 @@ internal sealed class ValueDWordArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"DWordArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"DWordArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueDWordArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1804,13 +1805,13 @@ internal sealed class ValueLWordArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"LWordArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"LWordArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueLWordArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1912,13 +1913,13 @@ internal sealed class ValueRealArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"RealArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"RealArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueRealArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2020,13 +2021,13 @@ internal sealed class ValueLRealArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"LRealArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"LRealArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueLRealArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2157,13 +2158,13 @@ internal sealed class ValueTimestampArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"TimestampArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"TimestampArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{ValueTimestamp.ToString(Value[i])}</Value>";
+            s.Append($"<Value>{ValueTimestamp.ToString(Value[i])}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueTimestampArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2319,13 +2320,13 @@ internal sealed class ValueTimespanArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"ValueTimespanArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"ValueTimespanArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{ValueTimespan.ToString(Value[i])}</Value>";
+            s.Append($"<Value>{ValueTimespan.ToString(Value[i])}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueTimespanArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2434,13 +2435,13 @@ internal sealed class ValueRIDArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"RIDArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"RIDArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueRIDArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2550,13 +2551,13 @@ internal sealed class ValueAIDArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"AIDArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"AIDArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueAIDArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2627,15 +2628,15 @@ internal sealed class ValueBlob : PValue
 
     public override string ToString()
     {
-        var s = !HasBlobType
+        var s = new StringBuilder(!HasBlobType
             ? $"<Value type=\"Blob\" BlobRootId=\"{BlobRootId}\">"
-            : $"<Value type=\"Blob\" BlobRootId=\"{BlobRootId}\" BlobType=\"{BlobType}\">";
+            : $"<Value type=\"Blob\" BlobRootId=\"{BlobRootId}\" BlobType=\"{BlobType}\">");
         if (Value != null)
         {
-            s += BitConverter.ToString(Value);
+            s.Append(BitConverter.ToString(Value));
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueBlob Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2733,13 +2734,13 @@ internal sealed class ValueBlobArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"ValueBlobArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"ValueBlobArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueBlobArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2808,18 +2809,18 @@ internal sealed class ValueBlobSparseArray : PValue
 
     public override string ToString()
     {
-        var s = "<Value type=\"BlobSparseArray\">";
+        var s = new StringBuilder("<Value type=\"BlobSparseArray\">");
         foreach (var v in Value)
         {
-            s += $"<Value key=\"{v.Key}\" BlobRootId=\"{v.Value.blobRootId}\">";
+            s.Append($"<Value key=\"{v.Key}\" BlobRootId=\"{v.Value.blobRootId}\">");
             if (Value != null && v.Value.value != null)
             {
-                s += BitConverter.ToString(v.Value.value);
+                s.Append(BitConverter.ToString(v.Value.value));
             }
-            s += "</Value>";
+            s.Append("</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueBlobSparseArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2945,13 +2946,13 @@ internal sealed class ValueWStringArray : PValue
 
     public override string ToString()
     {
-        var s = $"<Value type =\"WStringArray\" size=\"{Value.Length}\">";
+        var s = new StringBuilder($"<Value type =\"WStringArray\" size=\"{Value.Length}\">");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            s.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueWStringArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -3022,13 +3023,13 @@ internal sealed class ValueWStringSparseArray : PValue
 
     public override string ToString()
     {
-        var s = "<Value type =\"WStringSparseArray\">";
+        var s = new StringBuilder("<Value type =\"WStringSparseArray\">");
         foreach (var v in Value)
         {
-            s += $"<Value key=\"{v.Key}\">{v.Value}</Value>";
+            s.Append($"<Value key=\"{v.Key}\">{v.Value}</Value>");
         }
-        s += "</Value>";
-        return s;
+        s.Append("</Value>");
+        return s.ToString();
     }
 
     public static ValueWStringSparseArray Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -3161,23 +3162,23 @@ internal sealed class ValueStruct : PValue
 
     public override string ToString()
     {
-        var s = "";
-        s += "<Value type =\"Struct\">" + Environment.NewLine;
-        s += $"<ID>{Value}</ID>" + Environment.NewLine;
+        var s = new StringBuilder("");
+        s.AppendLine("<Value type =\"Struct\">");
+        s.AppendLine($"<ID>{Value}</ID>");
         if (Value is (> 0x90000000 and < 0x9fffffff) or (> 0x02000000 and < 0x02ffffff))
         {
-            s += $"<PackedStructInterfaceTimestamp>{PackedStructInterfaceTimestamp}</PackedStructInterfaceTimestamp>" + Environment.NewLine;
-            s += $"<PackedStructTransportFlags>{PackedStructTransportFlags}</PackedStructTransportFlags>" + Environment.NewLine;
+            s.AppendLine($"<PackedStructInterfaceTimestamp>{PackedStructInterfaceTimestamp}</PackedStructInterfaceTimestamp>");
+            s.AppendLine($"<PackedStructTransportFlags>{PackedStructTransportFlags}</PackedStructTransportFlags>");
         }
         foreach (var elem in Elements)
         {
-            s += "<Element>" + Environment.NewLine;
-            s += $"<ID>{elem.Key}</ID>" + Environment.NewLine;
-            s += elem.Value.ToString() + Environment.NewLine;
-            s += "</Element>" + Environment.NewLine;
+            s.AppendLine("<Element>");
+            s.AppendLine($"<ID>{elem.Key}</ID>");
+            s.AppendLine(elem.Value.ToString());
+            s.AppendLine("</Element>");
         }
-        s += "</Value>" + Environment.NewLine;
-        return s;
+        s.AppendLine("</Value>");
+        return s.ToString();
     }
 
     public static ValueStruct Deserialize(Stream buffer, byte flags, bool disableVlq)

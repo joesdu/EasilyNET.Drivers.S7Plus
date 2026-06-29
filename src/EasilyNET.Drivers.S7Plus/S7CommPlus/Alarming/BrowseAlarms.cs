@@ -24,7 +24,7 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="Alarms">Dictionary <ulong, AlarmData> where the results are written to. Key is used as address.</param>
     /// <param name="languageId">Language id for retrieving the text entries, use language code e.g. 1031 for german</param>
     /// <returns></returns>
-    public int ExploreASAlarms(ref Dictionary<ulong, AlarmData> Alarms, int languageId)
+    public async Task<int> ExploreASAlarmsAsync(Dictionary<ulong, AlarmData> Alarms, int languageId, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(Alarms, nameof(Alarms));
         int res;
@@ -44,7 +44,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             return m_LastError;
@@ -115,7 +115,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             return m_LastError;
@@ -181,7 +181,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             return m_LastError;
@@ -209,14 +209,14 @@ internal sealed partial class S7CommPlusConnection
         var tloa_2 = tloa[1].GetValue();
         var tloa_3 = tloa[2].GetValue();
 
-        GetTexts(tloa_1, tloa_2, tloa_3, tlsa, ref Alarms, languageId);
+        GetTexts(tloa_1, tloa_2, tloa_3, tlsa, Alarms, languageId);
 
         #endregion
 
         return 0;
     }
 
-    private void GetTexts(byte[] tloa_1, byte[] tloa_2, byte[] tloa_3, byte[] tlsa, ref Dictionary<ulong, AlarmData> Alarms, int languageId)
+    private void GetTexts(byte[] tloa_1, byte[] tloa_2, byte[] tloa_3, byte[] tlsa, Dictionary<ulong, AlarmData> Alarms, int languageId)
     {
         uint pos1, pos2, pos3;
         uint t1_count, t1_relid, t1_relid_off;
@@ -346,11 +346,11 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="alarmList">Contains the alarms, empty if there is no active alarm</param>
     /// <param name="languageId">Language id for retrieving the text entries, use language code e.g. 1031 for german</param>
     /// <returns>0 on success</returns>
-    internal int GetActiveAlarms(out List<AlarmsDai> alarmList, int languageId)
+    internal async Task<(int res, List<AlarmsDai> alarmList)> GetActiveAlarmsAsync(int languageId, CancellationToken ct = default)
     {
         int res;
 
-        alarmList = [];
+        var alarmList = new List<AlarmsDai>();
 
         var exploreReq = new ExploreRequest(ProtocolVersion.V2)
         {
@@ -377,26 +377,26 @@ internal sealed partial class S7CommPlusConnection
         res = SendS7plusFunctionObject(exploreReq);
         if (res != 0)
         {
-            return res;
+            return (res, alarmList);
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
         if (m_LastError != 0)
         {
-            return m_LastError;
+            return (m_LastError, alarmList);
         }
 
         var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
         res = checkResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
-            return res;
+            return (res, alarmList);
         }
         alarmList.AddRange(from obj in exploreRes?.Objects
                            let alarmDai = AlarmsDai.FromNotificationObject(obj, languageId)
                            where alarmDai != null
                            select alarmDai);
-        return 0;
+        return (0, alarmList);
     }
 }
 

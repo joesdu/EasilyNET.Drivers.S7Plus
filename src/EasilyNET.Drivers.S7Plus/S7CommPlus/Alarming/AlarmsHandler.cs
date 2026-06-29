@@ -26,7 +26,7 @@ internal sealed partial class S7CommPlusConnection
     private readonly uint m_AlarmSubscriptionRefRelationId = 0x51010001; // TODO! Unknown value!
     private short m_AlarmNextCreditLimit;
 
-    public int AlarmSubscriptionCreate()
+    public async Task<int> AlarmSubscriptionCreateAsync(CancellationToken ct = default)
     {
         int res;
         var subsobj = new PObject
@@ -86,7 +86,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -120,7 +120,7 @@ internal sealed partial class S7CommPlusConnection
         return res;
     }
 
-    public int TestWaitForAlarmNotifications(int waitTimeout, int untilNumberOfAlarms, int alarmTextsLanguageId)
+    public async Task<int> TestWaitForAlarmNotificationsAsync(int waitTimeout, int untilNumberOfAlarms, int alarmTextsLanguageId, CancellationToken ct = default)
     {
         var res = 0;
         short creditLimitStep = 5;
@@ -129,7 +129,7 @@ internal sealed partial class S7CommPlusConnection
         {
             log.LogDebug($"{Environment.NewLine}WaitForAlarmNotifications(): *** Loop #{i} ***");
             m_LastError = 0;
-            WaitForNewS7plusReceived(waitTimeout);
+            await WaitForNewS7plusReceivedAsync(waitTimeout, ct);
             if (m_LastError != 0)
             {
                 return m_LastError;
@@ -162,11 +162,11 @@ internal sealed partial class S7CommPlusConnection
         return res;
     }
 
-    public int AlarmSubscriptionDelete()
+    public async Task<int> AlarmSubscriptionDeleteAsync(CancellationToken ct = default)
     {
         int res;
         log.LogDebug($"SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}");
-        res = DeleteObject(SessionId2);
+        res = await DeleteObjectAsync(SessionId2, ct).ConfigureAwait(false);
         return res;
     }
 }

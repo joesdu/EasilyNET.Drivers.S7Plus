@@ -22,7 +22,7 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="password">PLC password</param>
     /// <param name="username">PLC username (leave empty for legacy login)</param>
     /// <returns>error code (0 = ok)</returns>
-    private int Legitimate(ValueStruct serverSession, string password, string username = "")
+    private async Task<int> LegitimateAsync(ValueStruct serverSession, string password, string username = "", CancellationToken ct = default)
     {
         // S7-1214C  (6ES7 214-1AG40-0XB0)           1;6ES7 214-1AG40-0XB0 ;V4.5
         // S7-1510SP (6ES7 510-1DJ01-0AB0)           1;6ES7 510-1DJ01-0AB0;V2.9
@@ -125,7 +125,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -145,7 +145,7 @@ internal sealed partial class S7CommPlusConnection
         if (accessLevel > AccessLevel.FullAccess && !string.IsNullOrEmpty(password))
         {
             // Legitimate
-            return legacyLegitimation ? LegitimateLegacy(password) : LegitimateNew(password, username);
+            return legacyLegitimation ? await LegitimateLegacyAsync(password, ct).ConfigureAwait(false) : await LegitimateNewAsync(password, username, ct).ConfigureAwait(false);
         }
         else if (accessLevel > AccessLevel.FullAccess)
         {
@@ -161,7 +161,7 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="password">PLC password</param>
     /// <param name="username">PLC username (leave empy for legacy login)</param>
     /// <returns>error code (0 = ok)</returns>
-    private int LegitimateNew(string password, string username = "")
+    private async Task<int> LegitimateNewAsync(string password, string username = "", CancellationToken ct = default)
     {
         // Get challenge
         var getVarSubstreamedReq_challange = new GetVarSubstreamedRequest(ProtocolVersion.V2)
@@ -177,7 +177,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -225,7 +225,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -291,7 +291,7 @@ internal sealed partial class S7CommPlusConnection
     /// </summary>
     /// <param name="password">PLC password</param>
     /// <returns>error code (0 = OK)</returns>
-    private int LegitimateLegacy(string password)
+    private async Task<int> LegitimateLegacyAsync(string password, CancellationToken ct = default)
     {
 
         // Get challenge
@@ -308,7 +308,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();
@@ -354,7 +354,7 @@ internal sealed partial class S7CommPlusConnection
             return res;
         }
         m_LastError = 0;
-        WaitForNewS7plusReceived(m_ReadTimeout);
+        await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct);
         if (m_LastError != 0)
         {
             m_client.Disconnect();

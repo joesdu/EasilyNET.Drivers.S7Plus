@@ -11,20 +11,31 @@ using System.Globalization;
 namespace EasilyNET.Drivers.S7Plus;
 
 /// <summary>
-///     西门子 S7-1200/S7-1500 符号寻址客户端（S7CommPlus 协议，TLS 加密）。
+///     西门子 S7-1200/S7-1500 符号寻址客户端（S7CommPlus 协议，TLS 加密），<b>异步优先</b>。
 ///     地址直接填 PLC 中的符号变量名，如 <c>"DataBlock_1.Temperature"</c>；
 ///     需在 TIA Portal 中开启“安全的 PG/PC 及 HMI 通信”，且数据块为优化访问。
 ///     <para xml:lang="en">
-///         Symbolic-addressing client for Siemens S7-1200/S7-1500 over the S7CommPlus protocol (TLS encrypted).
+///         Async-first symbolic-addressing client for Siemens S7-1200/S7-1500 over the S7CommPlus protocol (TLS encrypted).
 ///         Addresses are PLC symbol names such as <c>"DataBlock_1.Temperature"</c>; the PLC must have
 ///         "secure PG/PC and HMI communication" enabled and the data blocks must use optimized access.
 ///     </para>
 /// </summary>
 /// <remarks>
-///     本类型非线程安全的并发读写——读与写应串行调用（内部对连接生命周期加锁，但不为并发 IO 提供事务串行化）。
-///     <para xml:lang="en">This type is not safe for concurrent reads/writes; serialize read and write calls.</para>
+///     <b>自上而下的真异步实现</b>：从底层 socket 收发（<c>Socket.*Async</c>）、TLS 密文泵、ISO 帧组装，到
+///     S7CommPlus 请求-响应等待，全链路均为真正的 <c>await</c>——无后台线程、无忙等待轮询、无 <c>Task.Run</c> 包装。
+///     接收由单个异步“接收泵”驱动，响应通过异步信号量交付，<see cref=”CancellationToken” /> 贯穿全程可随时取消。
+///     所有 I/O（连接/读/写/断开）通过同一异步信号量串行化，可安全地从多个调用方并发 <c>await</c>（自动排队），
+///     避免同一连接上的并发请求导致协议序列号错乱。
+///     <para xml:lang=”en”>
+///         Genuine end-to-end async: from socket I/O (<c>Socket.*Async</c>), the TLS ciphertext pump and ISO framing,
+///         up to S7CommPlus request/response waiting — everything is real <c>await</c>, with no background thread,
+///         no busy-wait polling and no <c>Task.Run</c> wrapping. A single async receive pump drives reception,
+///         responses are delivered via an async semaphore, and the <see cref=”CancellationToken” /> flows throughout.
+///         All I/O is serialized through one async semaphore, so the client is safe to <c>await</c> from multiple
+///         callers concurrently (they queue), preventing protocol sequence-number corruption on one connection.
+///     </para>
 /// </remarks>
-public sealed class S7PlusClient : IDisposable
+public sealed class S7PlusClient : IAsyncDisposable
 {
     private const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss";
     private readonly string host;
@@ -32,14 +43,17 @@ public sealed class S7PlusClient : IDisposable
     private readonly string password;
     private readonly int timeoutMs;
     private readonly ILogger logger;
-    private readonly Lock sync = new();
+
+    // 异步信号量：串行化全部 I/O（连接/读/写/断开）。协议要求同一连接的请求串行，
+    // 因此用它替代同步 lock，并允许在持锁期间 await 线程池上的阻塞调用。
+    private readonly SemaphoreSlim gate = new(1, 1);
 
     // 点表地址(符号) → 已解析的 PlcTag（含 ItemAddress 与 Softdatatype）。
     // 按需懒解析，断开时清空；避免连接后对整个 PLC 做全量 Browse。
     // 值为 null 表示该符号在当前连接中解析失败（未找到），本连接周期内不再重复解析。
     private readonly ConcurrentDictionary<string, PlcTag?> resolvedCache = new(StringComparer.OrdinalIgnoreCase);
     private S7CommPlusConnection? connection;
-    private bool isConnected;
+    private volatile bool isConnected;
     private bool disposed;
 
     /// <summary>
@@ -68,66 +82,97 @@ public sealed class S7PlusClient : IDisposable
     #region connect
 
     /// <summary>
-    ///     连接到 PLC（同步阻塞）。已连接时直接返回 <see langword="true" />。
-    ///     <para xml:lang="en">Connects to the PLC (synchronous, blocking). Returns <see langword="true" /> immediately if already connected.</para>
+    ///     异步连接到 PLC。已连接时直接返回 <see langword="true" />。
+    ///     <para xml:lang="en">Connects to the PLC asynchronously. Returns <see langword="true" /> immediately if already connected.</para>
     /// </summary>
+    /// <param name="cancellationToken">取消令牌。<para xml:lang="en">Cancellation token.</para></param>
     /// <returns>连接成功返回 <see langword="true" />。<para xml:lang="en"><see langword="true" /> on success.</para></returns>
-    public bool Connect()
+    public async Task<bool> ConnectAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
-        lock (sync)
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            if (isConnected)
+            return await ConnectLockedAsync(cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    // 调用方须已持有 gate。
+    private async Task<bool> ConnectLockedAsync(CancellationToken cancellationToken)
+    {
+        if (isConnected)
+        {
+            return true;
+        }
+        try
+        {
+            var conn = new S7CommPlusConnection(logger);
+            // 全异步连接（TCP→ISO→TLS 握手→合法化），无 Task.Run
+            var res = await conn.ConnectAsync(host, password, username, timeoutMs, cancellationToken).ConfigureAwait(false);
+            if (res == 0)
             {
+                connection = conn;
+                isConnected = true;
+                resolvedCache.Clear();
+                logger.LogDebug("S7PlusClient: connected to {Host}", host);
                 return true;
             }
-            try
-            {
-                var conn = new S7CommPlusConnection(logger);
-                var res = conn.Connect(host, password, username, timeoutMs);
-                if (res == 0)
-                {
-                    connection = conn;
-                    isConnected = true;
-                    resolvedCache.Clear();
-                    logger.LogDebug("S7PlusClient: connected to {Host}", host);
-                    return true;
-                }
-                logger.LogDebug("S7PlusClient: connect to {Host} failed, res=0x{Res:X}", host, res);
-                try { conn.Disconnect(); } catch { /* ignore */ }
-                try { conn.Dispose(); } catch { /* ignore */ }
-                return false;
-            }
-            catch (Exception ex)
-            {
-                logger.LogDebug(ex, "S7PlusClient: connect to {Host} error", host);
-                DisconnectCore();
-                return false;
-            }
+            logger.LogDebug("S7PlusClient: connect to {Host} failed, res=0x{Res:X}", host, res);
+            try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* ignore */ }
+            return false;
+        }
+        catch (OperationCanceledException)
+        {
+            await DisconnectCoreAsync().ConfigureAwait(false);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "S7PlusClient: connect to {Host} error", host);
+            await DisconnectCoreAsync().ConfigureAwait(false);
+            return false;
         }
     }
 
     /// <summary>
-    ///     断开与 PLC 的连接（协议层优雅关闭并释放底层资源）。
-    ///     <para xml:lang="en">Disconnects from the PLC (graceful protocol shutdown and resource release).</para>
+    ///     异步断开与 PLC 的连接（协议层优雅关闭并释放底层资源）。
+    ///     <para xml:lang="en">Disconnects from the PLC asynchronously (graceful protocol shutdown and resource release).</para>
     /// </summary>
-    public void Disconnect()
+    /// <param name="cancellationToken">取消令牌。<para xml:lang="en">Cancellation token.</para></param>
+    public async Task DisconnectAsync(CancellationToken cancellationToken = default)
     {
-        lock (sync)
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            DisconnectCore();
+            isConnected = false;
+            var conn = Interlocked.Exchange(ref connection, null);
+            if (conn is not null)
+            {
+                // 优雅断开：删除会话后释放底层连接（全异步）
+                try { await conn.DisconnectAsync(cancellationToken).ConfigureAwait(false); } catch { /* 优雅关闭尽力而为 */ }
+                try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* 释放 S7Client/Socket */ }
+            }
+            resolvedCache.Clear();
+        }
+        finally
+        {
+            gate.Release();
         }
     }
 
-    private void DisconnectCore()
+    // best-effort 断开（用于 I/O 错误清理）：不做会话删除的网络往返，直接异步释放底层连接。
+    private async Task DisconnectCoreAsync()
     {
         isConnected = false;
         // 先把字段置空，避免其它线程在释放过程中再拿到正在销毁的连接
         var conn = Interlocked.Exchange(ref connection, null);
         if (conn is not null)
         {
-            try { conn.Disconnect(); } catch { /* 协议层优雅关闭：删除会话、关 socket、停接收线程 */ }
-            try { conn.Dispose(); } catch { /* 释放 S7Client/Socket/Mutex，避免重连泄漏句柄 */ }
+            try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* 释放 S7Client/Socket，避免重连泄漏句柄 */ }
         }
         // 清空解析缓存：重连后将针对新的连接对象重新解析符号
         resolvedCache.Clear();
@@ -142,7 +187,7 @@ public sealed class S7PlusClient : IDisposable
     ///     兼容上位机/组态软件导出的带前缀完整地址（如 <c>PLC_1.Blocks.DB1.test1</c>）：
     ///     先按完整地址解析，失败则逐级剥离最前面一段标识符前缀后重试，直到 PLC 识别或无前缀可剥离。
     /// </summary>
-    private PlcTag? Resolve(string address)
+    private async Task<PlcTag?> ResolveAsync(string address, CancellationToken ct)
     {
         if (resolvedCache.TryGetValue(address, out var cached))
         {
@@ -156,7 +201,7 @@ public sealed class S7PlusClient : IDisposable
         PlcTag? tag = null;
         try
         {
-            tag = ResolvePlcTag(conn, address);
+            tag = await ResolvePlcTagAsync(conn, address, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -171,12 +216,12 @@ public sealed class S7PlusClient : IDisposable
         return tag;
     }
 
-    private static PlcTag? ResolvePlcTag(S7CommPlusConnection conn, string address)
+    private static async Task<PlcTag?> ResolvePlcTagAsync(S7CommPlusConnection conn, string address, CancellationToken ct)
     {
         var symbol = address;
         while (true)
         {
-            var tag = conn.GetPlcTagBySymbol(symbol);
+            var tag = await conn.GetPlcTagBySymbolAsync(symbol, ct).ConfigureAwait(false);
             if (tag is not null)
             {
                 return tag;
@@ -200,15 +245,20 @@ public sealed class S7PlusClient : IDisposable
     #region read
 
     /// <summary>
-    ///     批量读取多个符号；未连接时会自动尝试连接。
-    ///     <para xml:lang="en">Reads multiple symbols in one batch; automatically connects if not yet connected.</para>
+    ///     异步批量读取多个符号；未连接时会自动尝试连接。
+    ///     <para xml:lang="en">Asynchronously reads multiple symbols in one batch; automatically connects if not yet connected.</para>
     /// </summary>
     /// <param name="symbols">PLC 符号列表。<para xml:lang="en">The PLC symbols to read.</para></param>
     /// <returns>与输入顺序一致的读取结果。<para xml:lang="en">Read results in the same order as the input.</para></returns>
-    public IReadOnlyList<S7TagValue> Read(params string[] symbols) => Read((IEnumerable<string>)symbols);
+    public Task<IReadOnlyList<S7TagValue>> ReadAsync(params string[] symbols) => ReadAsync(symbols, CancellationToken.None);
 
-    /// <inheritdoc cref="Read(string[])" />
-    public IReadOnlyList<S7TagValue> Read(IEnumerable<string> symbols)
+    /// <summary>
+    ///     异步批量读取多个符号；未连接时会自动尝试连接。
+    ///     <para xml:lang="en">Asynchronously reads multiple symbols in one batch; automatically connects if not yet connected.</para>
+    /// </summary>
+    /// <param name="symbols">PLC 符号列表。<para xml:lang="en">The PLC symbols to read.</para></param>
+    /// <param name="cancellationToken">取消令牌。<para xml:lang="en">Cancellation token.</para></param>
+    public async Task<IReadOnlyList<S7TagValue>> ReadAsync(IEnumerable<string> symbols, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(symbols);
@@ -217,22 +267,32 @@ public sealed class S7PlusClient : IDisposable
         {
             return [];
         }
-        if (!Connected && !Connect())
-        {
-            return [];
-        }
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            return ReadCore(list);
+            if (!Connected && !await ConnectLockedAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return [];
+            }
+            return await ReadCoreAsync(list, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
             logger.LogDebug(ex, "S7PlusClient: read error");
             return [];
         }
+        finally
+        {
+            gate.Release();
+        }
     }
 
-    private IReadOnlyList<S7TagValue> ReadCore(IList<string> symbols)
+    // 调用方须已持有 gate。
+    private async Task<IReadOnlyList<S7TagValue>> ReadCoreAsync(IList<string> symbols, CancellationToken ct)
     {
         var conn = connection;
         if (conn is null)
@@ -244,7 +304,7 @@ public sealed class S7PlusClient : IDisposable
         var tagList = new List<PlcTag>(symbols.Count);
         foreach (var symbol in symbols)
         {
-            var resolved = Resolve(symbol);
+            var resolved = await ResolveAsync(symbol, ct).ConfigureAwait(false);
             if (resolved is not null)
             {
                 addressList.Add(resolved.Address);
@@ -256,14 +316,14 @@ public sealed class S7PlusClient : IDisposable
         {
             return [];
         }
-        var res = conn.ReadValues(addressList, out var values, out var errors);
+        var (res, values, errors) = await conn.ReadValuesAsync(addressList, ct).ConfigureAwait(false);
 
         // 任意非零返回都视为通信/会话异常（如 PLC 主动终止会话、读超时）：
         // 断开以触发下次重连，而不是返回一堆 null 并永久卡死。
         if (res != 0)
         {
             logger.LogDebug("S7PlusClient: ReadValues res=0x{Res:X}", res);
-            Disconnect();
+            await DisconnectCoreAsync().ConfigureAwait(false);
             return [];
         }
         var now = DateTime.Now;
@@ -392,22 +452,24 @@ public sealed class S7PlusClient : IDisposable
     #region write
 
     /// <summary>
-    ///     写入单个符号的值（按 PLC 中该符号的真实数据类型编码）。
-    ///     <para xml:lang="en">Writes a single symbol (encoded by the symbol's real data type in the PLC).</para>
+    ///     异步写入单个符号的值（按 PLC 中该符号的真实数据类型编码）。
+    ///     <para xml:lang="en">Asynchronously writes a single symbol (encoded by the symbol's real data type in the PLC).</para>
     /// </summary>
     /// <param name="symbol">PLC 符号。<para xml:lang="en">The PLC symbol.</para></param>
     /// <param name="value">字符串形式的写入值。<para xml:lang="en">The value to write, as a string.</para></param>
+    /// <param name="cancellationToken">取消令牌。<para xml:lang="en">Cancellation token.</para></param>
     /// <returns>写入是否成功提交。<para xml:lang="en">Whether the write was committed successfully.</para></returns>
-    public bool Write(string symbol, string value) =>
-        Write([new(symbol, value)]);
+    public Task<bool> WriteAsync(string symbol, string value, CancellationToken cancellationToken = default) =>
+        WriteAsync([new(symbol, value)], cancellationToken);
 
     /// <summary>
-    ///     批量写入多个符号。
-    ///     <para xml:lang="en">Writes multiple symbols in one batch.</para>
+    ///     异步批量写入多个符号。
+    ///     <para xml:lang="en">Asynchronously writes multiple symbols in one batch.</para>
     /// </summary>
     /// <param name="writes">符号到写入值的映射。<para xml:lang="en">Mapping from symbol to value.</para></param>
+    /// <param name="cancellationToken">取消令牌。<para xml:lang="en">Cancellation token.</para></param>
     /// <returns>写入是否成功提交。<para xml:lang="en">Whether the write was committed successfully.</para></returns>
-    public bool Write(IEnumerable<KeyValuePair<string, string>> writes)
+    public async Task<bool> WriteAsync(IEnumerable<KeyValuePair<string, string>> writes, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(writes);
@@ -416,10 +478,33 @@ public sealed class S7PlusClient : IDisposable
         {
             return false;
         }
-        if (!Connected && !Connect())
+        await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
+            if (!Connected && !await ConnectLockedAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return false;
+            }
+            return await WriteCoreAsync(items, cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "S7PlusClient: write error");
             return false;
         }
+        finally
+        {
+            gate.Release();
+        }
+    }
+
+    // 调用方须已持有 gate。
+    private async Task<bool> WriteCoreAsync(IList<KeyValuePair<string, string>> items, CancellationToken ct)
+    {
         var conn = connection;
         if (conn is null)
         {
@@ -429,7 +514,7 @@ public sealed class S7PlusClient : IDisposable
         var valueList = new List<PValue>(items.Count);
         foreach (var item in items)
         {
-            var resolved = Resolve(item.Key);
+            var resolved = await ResolveAsync(item.Key, ct).ConfigureAwait(false);
             if (resolved is null)
             {
                 logger.LogDebug("S7PlusClient: cannot write {Symbol}={Value}, address not resolved", item.Key, item.Value);
@@ -449,11 +534,11 @@ public sealed class S7PlusClient : IDisposable
         }
         try
         {
-            var res = conn.WriteValues(addressList, valueList, out _);
+            var (res, _) = await conn.WriteValuesAsync(addressList, valueList, ct).ConfigureAwait(false);
             if (res != 0)
             {
                 logger.LogDebug("S7PlusClient: WriteValues res=0x{Res:X}", res);
-                Disconnect();
+                await DisconnectCoreAsync().ConfigureAwait(false);
                 return false;
             }
             return true;
@@ -461,7 +546,7 @@ public sealed class S7PlusClient : IDisposable
         catch (Exception ex)
         {
             logger.LogDebug(ex, "S7PlusClient: write error");
-            Disconnect();
+            await DisconnectCoreAsync().ConfigureAwait(false);
             return false;
         }
     }
@@ -534,14 +619,31 @@ public sealed class S7PlusClient : IDisposable
     public override string ToString() => $"[S7PlusClient {host}]";
 
     /// <inheritdoc />
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (disposed)
         {
             return;
         }
         disposed = true;
-        Disconnect();
+        // 取锁后优雅断开，确保不与在途 I/O 竞争（全异步，无 Task.Run）
+        await gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            isConnected = false;
+            var conn = Interlocked.Exchange(ref connection, null);
+            if (conn is not null)
+            {
+                try { await conn.DisconnectAsync().ConfigureAwait(false); } catch { /* 优雅关闭尽力而为 */ }
+                try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* ignore */ }
+            }
+            resolvedCache.Clear();
+        }
+        finally
+        {
+            gate.Release();
+            gate.Dispose();
+        }
     }
 
     #endregion
