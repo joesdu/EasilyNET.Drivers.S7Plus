@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Joe Du. See LICENSE.
-using EasilyNET.Drivers.S7Plus.S7CommPlus;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 using Microsoft.Extensions.Logging;
@@ -270,11 +269,9 @@ public sealed class S7PlusClient : IAsyncDisposable
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!Connected && !await ConnectLockedAsync(cancellationToken).ConfigureAwait(false))
-            {
-                return [];
-            }
-            return await ReadCoreAsync(list, cancellationToken).ConfigureAwait(false);
+            return !Connected && !await ConnectLockedAsync(cancellationToken).ConfigureAwait(false)
+                ? []
+                : await ReadCoreAsync(list, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -490,11 +487,7 @@ public sealed class S7PlusClient : IAsyncDisposable
         await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            if (!Connected && !await ConnectLockedAsync(cancellationToken).ConfigureAwait(false))
-            {
-                return false;
-            }
-            return await WriteCoreAsync(items, cancellationToken).ConfigureAwait(false);
+            return (Connected || await ConnectLockedAsync(cancellationToken).ConfigureAwait(false)) && await WriteCoreAsync(items, cancellationToken).ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {

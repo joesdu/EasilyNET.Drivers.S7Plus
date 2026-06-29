@@ -129,7 +129,7 @@ internal sealed partial class S7CommPlusConnection
         {
             log.LogDebug($"{Environment.NewLine}WaitForAlarmNotifications(): *** Loop #{i} ***");
             m_LastError = 0;
-            await WaitForNewS7plusReceivedAsync(waitTimeout, ct);
+            await WaitForNotificationAsync(waitTimeout, ct);
             if (m_LastError != 0)
             {
                 return m_LastError;

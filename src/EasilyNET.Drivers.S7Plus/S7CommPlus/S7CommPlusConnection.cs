@@ -19,10 +19,18 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     private S7Client m_client = null!;          // 在 ConnectAsync 中创建后整个连接生命周期内有效
     private MemoryStream m_ReceivedPDU = null!;  // 由接收泵在收到完整 PDU 后赋值
     private MemoryStream m_ReceivedTempPDU = null!;
-    private readonly Queue<MemoryStream> m_ReceivedPDUs = new();
-    // 接收队列的快速同步锁 + 可用信号量（异步等待响应，取代原 Mutex + Thread.Sleep 忙等待）
+    // 响应/通知分流：响应按 SequenceNumber 认领它的请求，通知单独入队，
+    // 从根本上杜绝纯 FIFO 顺序认领造成的“响应错位 → 读/写到别的点位的值”。
+    private readonly Queue<(ushort Seq, MemoryStream Pdu)> m_ReceivedResponses = new();
+    private readonly Queue<MemoryStream> m_ReceivedNotifications = new();
+    // 接收队列的快速同步锁 + 可用信号量（异步等待，取代原 Mutex + Thread.Sleep 忙等待）
     private readonly Lock m_pduLock = new();
-    private readonly SemaphoreSlim m_pduSignal = new(0);
+    private readonly SemaphoreSlim m_responseSignal = new(0);
+    private readonly SemaphoreSlim m_notificationSignal = new(0);
+    // 当前在途请求期望的响应序列号；同一连接经上层 gate 串行化，任一时刻至多一个在途请求。
+    private ushort m_pendingResponseSeq;
+    // 通知队列上限：订阅开启但无人消费时防止无界增长（丢最旧）。
+    private const int MaxNotificationQueue = 256;
 
     private bool m_ReceivedNeedMoreDataForCompletePDU;
     private bool m_NewS7CommPlusReceived;
@@ -106,38 +114,76 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     // 取代原先的 Thread.Sleep(2) 忙等待。超时或取消视为接收错误。
     private async ValueTask WaitForNewS7plusReceivedAsync(int Timeout, CancellationToken cancellationToken)
     {
-        bool got;
-        try
+        // 在总超时窗口内循环：丢弃序列号不符的陈旧响应（上一请求超时后迟到的回包），
+        // 只交付与当前在途请求 m_pendingResponseSeq 匹配的响应，杜绝响应错位。
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(Timeout);
+        while (true)
         {
-            got = await m_pduSignal.WaitAsync(Timeout, cancellationToken).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException)
-        {
-            m_LastError = S7Consts.errTCPDataReceive;
-            throw;
-        }
-        if (!got)
-        {
-            log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: ERROR: Timeout!");
-            m_LastError = S7Consts.errTCPDataReceive;
-            return;
-        }
-        MemoryStream? pdu = null;
-        lock (m_pduLock)
-        {
-            if (m_ReceivedPDUs.Count > 0)
+            try
             {
-                pdu = m_ReceivedPDUs.Dequeue();
+                await m_responseSignal.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                m_LastError = S7Consts.errTCPDataReceive;
+                throw; // 调用方主动取消，向上传播
+            }
+            catch (OperationCanceledException)
+            {
+                log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: ERROR: Timeout!");
+                if (m_LastError == 0) { m_LastError = S7Consts.errTCPDataReceive; }
+                return;
+            }
+            // 被致命 SystemEvent 唤醒（无 PDU 入队，m_LastError 已置位）
+            if (m_LastError != 0) { return; }
+            (ushort Seq, MemoryStream Pdu)? item = null;
+            lock (m_pduLock)
+            {
+                if (m_ReceivedResponses.Count > 0) { item = m_ReceivedResponses.Dequeue(); }
+            }
+            if (item is null) { continue; } // 杂散信号，继续等待
+            if (item.Value.Seq == m_pendingResponseSeq)
+            {
+                m_ReceivedPDU = item.Value.Pdu;
+                return;
+            }
+            // 序列号不符：上一请求超时后迟到的陈旧响应，丢弃并继续等待本次响应
+            log.LogDebug($"S7CommPlusConnection - WaitForNewS7plusReceived: discarding stale response seq={item.Value.Seq}, expected {m_pendingResponseSeq}");
+            item.Value.Pdu.Dispose();
         }
-        if (pdu is not null)
+    }
+
+    // 等待一个订阅通知 PDU（非请求触发）。与响应分流到独立队列，互不干扰。
+    private async ValueTask WaitForNotificationAsync(int Timeout, CancellationToken cancellationToken)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(Timeout);
+        while (true)
         {
+            try
+            {
+                await m_notificationSignal.WaitAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                m_LastError = S7Consts.errTCPDataReceive;
+                throw;
+            }
+            catch (OperationCanceledException)
+            {
+                if (m_LastError == 0) { m_LastError = S7Consts.errTCPDataReceive; }
+                return;
+            }
+            if (m_LastError != 0) { return; }
+            MemoryStream? pdu = null;
+            lock (m_pduLock)
+            {
+                if (m_ReceivedNotifications.Count > 0) { pdu = m_ReceivedNotifications.Dequeue(); }
+            }
+            if (pdu is null) { continue; }
             m_ReceivedPDU = pdu;
-        }
-        else if (m_LastError == 0)
-        {
-            // 被唤醒但无可用 PDU：通常是致命 SystemEvent 已置位 m_LastError；否则视为接收错误
-            m_LastError = S7Consts.errTCPDataReceive;
+            return;
         }
     }
 
@@ -148,6 +194,8 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         // Insert SequenceNumber and IntegrityId, if neccessary for object type and state of communication
         funcObj.SequenceNumber = GetNextSequenceNumber();
+        // 记录本次请求的序列号：响应等待据此认领，丢弃序列号不符的陈旧/迟到响应
+        m_pendingResponseSeq = funcObj.SequenceNumber;
         if (funcObj.WithIntegrityId)
         {
             funcObj.IntegrityId = GetNextIntegrityId(funcObj.FunctionCode);
@@ -284,9 +332,11 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 if (sysevt?.IsFatalError() == true)
                 {
                     log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent has fatal error");
-                    // Termination neccessary：置错误并唤醒等待者（无 PDU 入队）
+                    // Termination neccessary：置错误并唤醒等待者（无 PDU 入队）。
+                    // 释放两个信号量：无论当前等待的是响应还是通知都能立即返回错误（连接随后会被丢弃重连）。
                     m_LastError = S7Consts.errIsoInvalidPDU;
-                    m_pduSignal.Release();
+                    m_responseSignal.Release();
+                    m_notificationSignal.Release();
                 }
                 else
                 {
@@ -311,15 +361,35 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             }
         }
 
-        // If a complete (usable) PDU is received, add to the queue (threadsafe) for readout
+        // If a complete (usable) PDU is received, route it by opcode (threadsafe) for readout.
         if (m_NewS7CommPlusReceived)
         {
-            // Push complete PDU to the queue 并释放信号量唤醒等待者
-            lock (m_pduLock)
+            // 队列内 PDU 流布局：[0]=ProtocolVersion, [1]=Opcode, [2-3]=保留, [4-5]=功能码, [6-7]=保留, [8-9]=SequenceNumber
+            var streamBuf = m_ReceivedTempPDU.GetBuffer();
+            var pduLen = m_ReceivedTempPDU.Length;
+            var opcode = pduLen > 1 ? streamBuf[1] : (byte)0;
+            if (opcode == Opcode.Notification)
             {
-                m_ReceivedPDUs.Enqueue(m_ReceivedTempPDU);
+                lock (m_pduLock)
+                {
+                    while (m_ReceivedNotifications.Count >= MaxNotificationQueue)
+                    {
+                        m_ReceivedNotifications.Dequeue().Dispose(); // 丢最旧，防止无人消费时无界增长
+                    }
+                    m_ReceivedNotifications.Enqueue(m_ReceivedTempPDU);
+                }
+                m_notificationSignal.Release();
             }
-            m_pduSignal.Release();
+            else
+            {
+                // 响应：取出 SequenceNumber 供等待方按需认领（认不上的陈旧响应会被丢弃）
+                var seq = pduLen >= 10 ? (ushort)((streamBuf[8] << 8) | streamBuf[9]) : (ushort)0;
+                lock (m_pduLock)
+                {
+                    m_ReceivedResponses.Enqueue((seq, m_ReceivedTempPDU));
+                }
+                m_responseSignal.Release();
+            }
             m_NewS7CommPlusReceived = false;
         }
     }
@@ -340,7 +410,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         log.LogDebug(string.Join(" ", b.Select(x => $"0x{x:X02}")));
     }
 
-    private int checkResponseWithIntegrity(IS7pRequest request, IS7pResponse? response)
+    private int CheckResponseWithIntegrity(IS7pRequest request, IS7pResponse? response)
     {
         if (response == null)
         {
@@ -577,7 +647,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         else
         {
             var delObjRes = DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-            res = checkResponseWithIntegrity(delObjReq, delObjRes);
+            res = CheckResponseWithIntegrity(delObjReq, delObjRes);
             if (res != 0)
             {
                 return res;
@@ -629,7 +699,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             }
 
             var getMultiVarRes = GetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
-            res = checkResponseWithIntegrity(getMultiVarReq, getMultiVarRes);
+            res = CheckResponseWithIntegrity(getMultiVarReq, getMultiVarRes);
             if (res != 0)
             {
                 return (res, values, errors);
@@ -699,7 +769,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             }
 
             var setMultiVarRes = SetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
-            res = checkResponseWithIntegrity(setMultiVarReq, setMultiVarRes);
+            res = CheckResponseWithIntegrity(setMultiVarReq, setMultiVarRes);
             if (res != 0)
             {
                 return (res, errors);
@@ -794,7 +864,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return (res, varInfoList);
@@ -924,7 +994,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         #region Process the response, and build the complete variables list
         exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return (res, varInfoList);
@@ -952,7 +1022,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     /// <param name="symbolRef">plc tag symbol</param>
     /// <returns>The first level of the symbol string</returns>
     /// <exception cref="Exception">Symbol syntax error</exception>
-    private static string parseSymbolLevel(SymbolRef symbolRef)
+    private static string ParseSymbolLevel(SymbolRef symbolRef)
     {
         var symbol = symbolRef.Value;
         try
@@ -1050,7 +1120,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             throw new Exception("Symbol syntax error");
         }
 
-        parseSymbolLevel(symbol); // remove index from symbol string
+        ParseSymbolLevel(symbol); // remove index from symbol string
         var arrayIndex = int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture);
 
         var ioit = varType.OffsetInfoType as IOffsetInfoType_1Dim;
@@ -1089,7 +1159,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             throw new Exception("Symbol syntax error");
         }
 
-        parseSymbolLevel(symbol); // remove index from symbol string
+        ParseSymbolLevel(symbol); // remove index from symbol string
         var idxs = m.Groups[1].Value.Replace(" ", "", StringComparison.InvariantCulture);
 
         var indexes = Array.ConvertAll(idxs.Split(','), e => int.Parse(e, CultureInfo.InvariantCulture));
@@ -1159,7 +1229,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     private async Task<PlcTag?> BrowsePlcTagBySymbolAsync(uint ti_relid, SymbolRef symbol, VarInfo varInfo, CancellationToken ct = default)
     {
         var pObj = await GetTypeInfoByRelIdAsync(ti_relid, ct).ConfigureAwait(false) ?? throw new Exception("Could not get type info");
-        var levelName = parseSymbolLevel(symbol);
+        var levelName = ParseSymbolLevel(symbol);
         // find level name of symbol in var list
         var idx = pObj.VarnameList?.Names?.IndexOf(levelName) ?? -1;
         if (idx < 0)
@@ -1227,7 +1297,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             if (r != 0) { return null; }
         }
         var sym = new SymbolRef(symbol);
-        var levelName = parseSymbolLevel(sym);
+        var levelName = ParseSymbolLevel(sym);
         // find db by first level name of symbol
         var dbInfo = dbInfoList.Find(dbi => dbi.db_name == levelName);
         if (dbInfo != null)
@@ -1335,7 +1405,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return (res, dbInfoList);
@@ -1453,7 +1523,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return (res, objList);
@@ -1518,7 +1588,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return (res, xml_linecomment, xml_dbcomment);

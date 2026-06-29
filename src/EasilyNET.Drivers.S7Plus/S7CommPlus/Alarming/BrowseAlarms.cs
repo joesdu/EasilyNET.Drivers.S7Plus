@@ -56,7 +56,7 @@ internal sealed partial class S7CommPlusConnection
         {
             return S7Consts.errIsoInvalidPDU;
         }
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return res;
@@ -388,7 +388,7 @@ internal sealed partial class S7CommPlusConnection
         }
 
         var exploreRes = ExploreResponse.DeserializeFromPdu(m_ReceivedPDU, true);
-        res = checkResponseWithIntegrity(exploreReq, exploreRes);
+        res = CheckResponseWithIntegrity(exploreReq, exploreRes);
         if (res != 0)
         {
             return (res, alarmList);

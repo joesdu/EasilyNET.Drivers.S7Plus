@@ -59,69 +59,42 @@ internal abstract class PValue : IS7pSerialize
         // Sparsearray and Addressarray of Struct are different
         if (flags == FLAGS_ARRAY || flags == FLAGS_ADDRESSARRAY)
         {
-            switch (datatype)
+            return datatype switch
             {
-                case Datatype.Bool:
-                    return ValueBoolArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.USInt:
-                    return ValueUSIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.UInt:
-                    return ValueUIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.UDInt:
-                    return ValueUDIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.ULInt:
-                    return ValueULIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.SInt:
-                    return ValueSIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Int:
-                    return ValueIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.DInt:
-                    return ValueDIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.LInt:
-                    return ValueLIntArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Byte:
-                    return ValueByteArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Word:
-                    return ValueWordArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.DWord:
-                    return ValueDWordArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.LWord:
-                    return ValueLWordArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Real:
-                    return ValueRealArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.LReal:
-                    return ValueLRealArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Timestamp:
-                    return ValueTimestampArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Timespan:
-                    return ValueTimespanArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.RID:
-                    return ValueRIDArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.AID:
-                    return ValueAIDArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Blob:
-                    return ValueBlobArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.WString:
-                    return ValueWStringArray.Deserialize(buffer, flags, disableVlq);
-                default:
-                    throw new NotImplementedException();
-            }
+                Datatype.Bool => ValueBoolArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.USInt => ValueUSIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.UInt => ValueUIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.UDInt => ValueUDIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.ULInt => ValueULIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.SInt => ValueSIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Int => ValueIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.DInt => ValueDIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.LInt => ValueLIntArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Byte => ValueByteArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Word => ValueWordArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.DWord => ValueDWordArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.LWord => ValueLWordArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Real => ValueRealArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.LReal => ValueLRealArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Timestamp => ValueTimestampArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Timespan => ValueTimespanArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.RID => ValueRIDArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.AID => ValueAIDArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Blob => ValueBlobArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.WString => ValueWStringArray.Deserialize(buffer, flags, disableVlq),
+                _ => throw new NotImplementedException(),
+            };
         }
         else if (flags == FLAGS_SPARSEARRAY)
         {
-            switch (datatype)
+            return datatype switch
             {
-                case Datatype.DInt:
-                    return ValueDIntSparseArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.UDInt:
-                    return ValueUDIntSparseArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.Blob:
-                    return ValueBlobSparseArray.Deserialize(buffer, flags, disableVlq);
-                case Datatype.WString:
-                    return ValueWStringSparseArray.Deserialize(buffer, flags, disableVlq);
-                default:
-                    throw new NotImplementedException();
-            }
+                Datatype.DInt => ValueDIntSparseArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.UDInt => ValueUDIntSparseArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.Blob => ValueBlobSparseArray.Deserialize(buffer, flags, disableVlq),
+                Datatype.WString => ValueWStringSparseArray.Deserialize(buffer, flags, disableVlq),
+                _ => throw new NotImplementedException(),
+            };
         }
         else
         {

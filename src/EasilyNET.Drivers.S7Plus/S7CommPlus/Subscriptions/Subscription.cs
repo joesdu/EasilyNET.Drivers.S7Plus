@@ -187,7 +187,7 @@ internal sealed partial class S7CommPlusConnection
         {
             log.LogDebug($"{Environment.NewLine}WaitForNotifications(): *** Loop #{i} ***");
             m_LastError = 0;
-            await WaitForNewS7plusReceivedAsync(5000, ct);
+            await WaitForNotificationAsync(5000, ct);
             if (m_LastError != 0)
             {
                 return m_LastError;
@@ -262,14 +262,19 @@ internal sealed partial class S7CommPlusConnection
         {
             await m_client.DisposeAsync().ConfigureAwait(false);
         }
-        m_pduSignal?.Dispose();
+        m_responseSignal?.Dispose();
+        m_notificationSignal?.Dispose();
         m_ReceivedPDU?.Dispose();
         m_ReceivedTempPDU?.Dispose();
         lock (m_pduLock)
         {
-            while (m_ReceivedPDUs.Count > 0)
+            while (m_ReceivedResponses.Count > 0)
             {
-                m_ReceivedPDUs.Dequeue().Dispose();
+                m_ReceivedResponses.Dequeue().Pdu.Dispose();
+            }
+            while (m_ReceivedNotifications.Count > 0)
+            {
+                m_ReceivedNotifications.Dequeue().Dispose();
             }
         }
     }
