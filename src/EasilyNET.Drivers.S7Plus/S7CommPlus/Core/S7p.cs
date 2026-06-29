@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Buffers.Binary;
 using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
@@ -184,10 +185,9 @@ internal static class S7p
             value = 0;
             return 0;
         }
-        var b = new byte[8];
-        buffer.ReadExactly(b, 0, 8);
-        Array.Reverse(b, 0, 8);
-        value = BitConverter.ToUInt64(b, 0);
+        Span<byte> b = stackalloc byte[8];
+        buffer.ReadExactly(b);
+        value = BinaryPrimitives.ReadUInt64BigEndian(b);
         return 8;
     }
 
@@ -199,17 +199,16 @@ internal static class S7p
             value = 0;
             return 0;
         }
-        var b = new byte[8];
-        buffer.ReadExactly(b, 0, 8);
-        Array.Reverse(b, 0, 8);
-        value = BitConverter.ToInt64(b, 0);
+        Span<byte> b = stackalloc byte[8];
+        buffer.ReadExactly(b);
+        value = BinaryPrimitives.ReadInt64BigEndian(b);
         return 8;
     }
 
     public static int EncodeUInt32Vlq(Stream buffer, uint value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        var bytes = new byte[5];
+        Span<byte> bytes = stackalloc byte[5]; // 栈上临时缓冲，避免每次 VLQ 编码堆分配（高频采集热点）
         int i, j;
         for (i = 4; i > 0; i--)
         {
@@ -223,7 +222,7 @@ internal static class S7p
             bytes[j] = (byte)(((value >> ((i - j) * 7)) & 0x7f) | 0x80);
         }
         bytes[i] ^= 0x80;
-        buffer.Write(bytes, 0, i + 1);
+        buffer.Write(bytes[..(i + 1)]);
         return i + 1;
     }
 
@@ -304,7 +303,7 @@ internal static class S7p
         // The actual method writes the values in the 2nd compact variant.
         // The decode algorithms can handle both variants.
 
-        var b = new byte[5];
+        Span<byte> b = stackalloc byte[5]; // 栈上临时缓冲，避免每次 VLQ 编码堆分配
         var abs_v = value == int.MinValue ? 2147483648 : (uint)Math.Abs(value);
         b[0] = (byte)(value & 0x7f);
         var length = 1;
@@ -326,7 +325,7 @@ internal static class S7p
         // Reverse order of bytes
         for (var i = length - 1; i >= 0; i--)
         {
-            buffer.Write(b, i, 1);
+            buffer.WriteByte(b[i]);
         }
         return length;
     }
@@ -340,7 +339,7 @@ internal static class S7p
         // Every byte looses 1 bit for the "continue" flag. For 8 bytes loosing 1 bit, we need 1 more byte.
         // Which in the normal variant would have only 7 bit of space, because 1 bit is for the "continue" flag.
         // The special handling allows to use all 8 bits in the additional 9th byte.
-        var b = new byte[9];
+        Span<byte> b = stackalloc byte[9]; // 栈上临时缓冲，避免每次 VLQ 编码堆分配
 
         var special = value > 0x00ffffffffffffff;
         b[0] = special ? (byte)(value & 0xff) : (byte)(value & 0x7f);
@@ -385,7 +384,7 @@ internal static class S7p
         // Reverse order of bytes
         for (var i = length - 1; i >= 0; i--)
         {
-            buffer.Write(b, i, 1);
+            buffer.WriteByte(b[i]);
         }
         return length;
     }
@@ -468,7 +467,7 @@ internal static class S7p
     public static int EncodeInt64Vlq(Stream buffer, long value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        var b = new byte[9];
+        Span<byte> b = stackalloc byte[9]; // 栈上临时缓冲，避免每次 VLQ 编码堆分配
         var abs_v = value == long.MinValue ? 9223372036854775808 : (ulong)Math.Abs(value);
         var special = abs_v > 0x007fffffffffffff;
         b[0] = special ? (byte)(value & 0xff) : (byte)(value & 0x7f);
@@ -509,7 +508,7 @@ internal static class S7p
         // Reverse order of bytes
         for (var i = length - 1; i >= 0; i--)
         {
-            buffer.Write(b, i, 1);
+            buffer.WriteByte(b[i]);
         }
         return length;
     }
@@ -517,54 +516,38 @@ internal static class S7p
     public static int EncodeFloat(Stream buffer, float value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        var v = BitConverter.GetBytes(value);
-        buffer.WriteByte(v[3]);
-        buffer.WriteByte(v[2]);
-        buffer.WriteByte(v[1]);
-        buffer.WriteByte(v[0]);
+        Span<byte> v = stackalloc byte[4];
+        BinaryPrimitives.WriteSingleBigEndian(v, value);
+        buffer.Write(v);
         return 4;
     }
 
     public static int DecodeFloat(Stream buffer, out float value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        var v = new byte[4];
-        v[3] = (byte)buffer.ReadByte();
-        v[2] = (byte)buffer.ReadByte();
-        v[1] = (byte)buffer.ReadByte();
-        v[0] = (byte)buffer.ReadByte();
-        value = BitConverter.ToSingle(v, 0);
+        if (buffer.Length - buffer.Position < 4) { value = 0; return 0; }
+        Span<byte> v = stackalloc byte[4];
+        buffer.ReadExactly(v);
+        value = BinaryPrimitives.ReadSingleBigEndian(v);
         return 4;
     }
 
     public static int EncodeDouble(Stream buffer, double value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        var v = BitConverter.GetBytes(value);
-        buffer.WriteByte(v[7]);
-        buffer.WriteByte(v[6]);
-        buffer.WriteByte(v[5]);
-        buffer.WriteByte(v[4]);
-        buffer.WriteByte(v[3]);
-        buffer.WriteByte(v[2]);
-        buffer.WriteByte(v[1]);
-        buffer.WriteByte(v[0]);
+        Span<byte> v = stackalloc byte[8];
+        BinaryPrimitives.WriteDoubleBigEndian(v, value);
+        buffer.Write(v);
         return 8;
     }
 
     public static int DecodeDouble(Stream buffer, out double value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        var v = new byte[8];
-        v[7] = (byte)buffer.ReadByte();
-        v[6] = (byte)buffer.ReadByte();
-        v[5] = (byte)buffer.ReadByte();
-        v[4] = (byte)buffer.ReadByte();
-        v[3] = (byte)buffer.ReadByte();
-        v[2] = (byte)buffer.ReadByte();
-        v[1] = (byte)buffer.ReadByte();
-        v[0] = (byte)buffer.ReadByte();
-        value = BitConverter.ToDouble(v, 0);
+        if (buffer.Length - buffer.Position < 8) { value = 0; return 0; }
+        Span<byte> v = stackalloc byte[8];
+        buffer.ReadExactly(v);
+        value = BinaryPrimitives.ReadDoubleBigEndian(v);
         return 8;
     }
 

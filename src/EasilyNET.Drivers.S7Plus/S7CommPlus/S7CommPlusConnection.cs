@@ -201,9 +201,11 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             funcObj.IntegrityId = GetNextIntegrityId(funcObj.FunctionCode);
         }
 
-        var stream = new MemoryStream();
+        // 预分配并用 GetBuffer() 直接取底层缓冲（SendS7plusPDUdata 仅按长度即时读取并拷贝出去，不持有），
+        // 避免 ToArray() 的整包再拷贝；预设容量减少增长重分配。
+        using var stream = new MemoryStream(512);
         funcObj.Serialize(stream);
-        return SendS7plusPDUdata(stream.ToArray(), (int)stream.Length, funcObj.ProtocolVersion);
+        return SendS7plusPDUdata(stream.GetBuffer(), (int)stream.Length, funcObj.ProtocolVersion);
     }
 
     private int SendS7plusPDUdata(byte[] sendPduData, int bytesToSend, byte protoVersion)

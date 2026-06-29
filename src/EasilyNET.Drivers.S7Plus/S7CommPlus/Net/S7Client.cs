@@ -36,6 +36,7 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
 
     private volatile bool m_SslActive; // 接收泵线程读取、请求线程写入，volatile 避免弱内存序下读到陈旧值
     private S7TlsConnector? m_sslconn;
+    private byte[] m_recvScratch = new byte[8192]; // 接收泵专用：解出的明文暂存缓冲，复用避免每帧分配
     private readonly ILogger log;
     private bool m_disposed;
 
@@ -62,11 +63,10 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
         {
             return;
         }
-        var buf = new byte[8192];
-        var bytesRead = m_sslconn.Receive(ref buf, buf.Length);
-        var readData = new byte[bytesRead];
-        Array.Copy(buf, readData, bytesRead);
-        OnDataReceived?.Invoke(readData, bytesRead);
+        // 复用接收暂存缓冲（仅接收泵单线程触碰）；OnDataReceived 同步拷贝进 MemoryStream，不持有此数组，
+        // 故无需每次新分配，也无需再拷一份 readData。
+        var bytesRead = m_sslconn.Receive(ref m_recvScratch, m_recvScratch.Length);
+        OnDataReceived?.Invoke(m_recvScratch, bytesRead);
     }
 
     // 启动 TLS：创建 BouncyCastle 连接器并立即发出 ClientHello。

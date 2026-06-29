@@ -384,20 +384,15 @@ public sealed class S7PlusClient : IAsyncDisposable
                 break;
         }
 
-        // ② 数组：直接从协议值取底层数组并逗号拼接（PlcTag/PValue 数组的 ToString 是 XML，不可用）
-        var arr = FormatArray(value, ic);
-        if (arr is not null)
-        {
-            return arr;
-        }
-
-        // ③ 普通标量：布尔统一 "1"/"0"，浮点用不变区域避免逗号小数点
-        return FormatScalar(value, ic);
+        // ② 标量/数组单次分发：标量分支在前（高频数值采集最常见），命中即返回，
+        // 避免原先“先扫一遍数组分支再扫一遍标量分支”的双重 isinst 扫描（每个 tag 约省一半类型测试）。
+        return FormatPValue(value, ic);
     }
 
-    private static string? FormatScalar(object value, CultureInfo ic) =>
+    private static string? FormatPValue(object value, CultureInfo ic) =>
         value switch
         {
+            // 标量（最常见）
             ValueBool v => v.GetValue() ? "1" : "0",
             ValueByte v => v.GetValue().ToString(ic),
             ValueUSInt v => v.GetValue().ToString(ic),
@@ -416,12 +411,7 @@ public sealed class S7PlusClient : IAsyncDisposable
             ValueTimestamp v => v.GetValue().ToString(ic),
             ValueTimespan v => v.GetValue().ToString(ic),
             ValueRID v => v.GetValue().ToString(ic),
-            _ => value.ToString()
-        };
-
-    private static string? FormatArray(object value, CultureInfo ic) =>
-        value switch
-        {
+            // 数组
             ValueBoolArray a => string.Join(",", a.GetValue().Select(b => b ? "1" : "0")),
             ValueByteArray a => string.Join(",", a.GetValue()),
             ValueUSIntArray a => string.Join(",", a.GetValue()),
@@ -439,7 +429,7 @@ public sealed class S7PlusClient : IAsyncDisposable
             ValueLRealArray a => string.Join(",", a.GetValue().Select(x => x.ToString(ic))),
             ValueTimestampArray a => string.Join(",", a.GetValue()),
             ValueTimespanArray a => string.Join(",", a.GetValue()),
-            _ => null
+            _ => value.ToString()
         };
 
     // PlcTag.ToString() 形如 "QC: value"（两位十六进制质量码 + ": "），去掉前缀只留值
