@@ -1706,7 +1706,7 @@ internal sealed class PlcTagDateAndTimeArray : PlcTag
             var dataOk = true;
             foreach (var item in value)
             {
-                if (item < new DateTime(1990, 1, 1) && item >= new DateTime(2090, 1, 1))
+                if (item < new DateTime(1990, 1, 1) || item >= new DateTime(2090, 1, 1))
                 {
                     dataOk = false;
                     break;
@@ -1739,7 +1739,7 @@ internal sealed class PlcTagDateAndTimeArray : PlcTag
                 }
                 // The left nibble of the last byte contains the LSD of milliseconds,
                 // the right nibble the weekday (which we don't process here).
-                ts[7] = v[7] >> 4;
+                ts[7] = v[pos + 7] >> 4; // 必须按当前元素偏移取该字节，原实现误用固定 v[7] 导致数组中后续元素毫秒位错误
 
                 var year = ts[0] >= 90 ? 1900 + ts[0] : 2000 + ts[0];
                 var value = new DateTime(year, ts[1], ts[2], ts[3], ts[4], ts[5]);

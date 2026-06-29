@@ -206,13 +206,26 @@ internal sealed partial class S7CommPlusConnection
                 {
                     log.LogDebug($"---> key={v.Key} value={v.Value}");
                     // Error value in tags expects a 64 bit value, in subscriptions it's only 1 byte (for it's not known what all values are for -> TODO)
-                    m_SubscribedTags[v.Key].ProcessReadResult(v.Value, 0);
+                    // 未知 item-reference id（如告警/额外项）不应抛 KeyNotFoundException 中断整个通知处理
+                    if (m_SubscribedTags.TryGetValue(v.Key, out var subTag))
+                    {
+                        subTag.ProcessReadResult(v.Value, 0);
+                    }
+                    else
+                    {
+                        log.LogDebug($"Notification: unknown item reference id {v.Key}, skipped");
+                    }
                 }
 
                 if (noti.NotificationCreditTick >= m_NextCreditLimit - 1) // Set new limit one tick before it expires, to get a constant flow of data
                 {
                     // CreditTick in Notification is only one byte
                     m_NextCreditLimit = (short)((m_NextCreditLimit + creditLimitStep) % 255);
+                    // 信用额度为 0 等同“不再发送任何通知”，回绕到 0 会让长跑订阅卡死：跳过 0 保持数据流
+                    if (m_NextCreditLimit <= 0)
+                    {
+                        m_NextCreditLimit = (short)creditLimitStep;
+                    }
                     log.LogDebug($"--> Credit limit of {noti.NotificationCreditTick} reached. SetCreditLimit to {m_NextCreditLimit}");
                     SubscriptionSetCreditLimit(m_NextCreditLimit);
                 }

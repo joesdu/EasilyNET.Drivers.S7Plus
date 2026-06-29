@@ -213,6 +213,12 @@ internal sealed partial class S7CommPlusConnection
         var key = LegitimationCrypto.Sha256(omsSecret);
         omsSecret = key;
 
+        if (challenge.Length < 16)
+        {
+            log.LogDebug("S7CommPlusConnection - Legitimate: challenge too short for IV (< 16 bytes)!");
+            m_client.Disconnect();
+            return S7Consts.errIsoInvalidPDU;
+        }
         // Use the first 16 bytes of the challenge as iv
         var iv = new ArraySegment<byte>(challenge, 0, 16).ToArray();
         // Encrypt

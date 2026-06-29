@@ -1057,7 +1057,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var arrayElementCount = ioit?.GetArrayElementCount();
         var arrayLowerBounds = ioit?.GetArrayLowerBounds();
 
-        if (arrayIndex - arrayLowerBounds > arrayElementCount)
+        if (arrayIndex - arrayLowerBounds >= arrayElementCount)
         {
             throw new Exception("Out of bounds");
         }
@@ -1107,7 +1107,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         for (var i = 0; i < dimCount; ++i)
         {
             indexes[i] = indexes[i] - MdimArrayLowerBounds[dimCount - i - 1];
-            if (indexes[i] > MdimArrayElementCount[dimCount - i - 1])
+            if (indexes[i] >= MdimArrayElementCount[dimCount - i - 1])
             {
                 throw new Exception("Out of bounds");
             }
@@ -1119,8 +1119,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
 
         // calc dim size
-        if (varType.Softdatatype == Softdatatype.S7COMMP_SOFTDATATYPE_BBOOL)
+        if (varType.Softdatatype == Softdatatype.S7COMMP_SOFTDATATYPE_BBOOL && MdimArrayElementCount[0] % 8 != 0)
         {
+            // 仅当未对齐到 8 时才补齐；否则会多加一个 8（与 Browser.AddFlatSubnodes 的判定保持一致）
             MdimArrayElementCount[0] += 8 - (MdimArrayElementCount[0] % 8); // for bool must be a mutiple of 8!
         }
         var dimSize = new uint[dimCount];

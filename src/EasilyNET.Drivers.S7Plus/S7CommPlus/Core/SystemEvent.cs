@@ -79,7 +79,8 @@ internal sealed class SystemEvent(byte protocolVersion)
             }
             catch
             {
-                return true;
+                // 解析失败（Data 非预期结构 / 缺少 ReturnValue 成员）不应判为致命而触发断连，按良性系统事件处理
+                return false;
             }
         }
         return false;

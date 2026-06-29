@@ -278,6 +278,9 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+            // 取消仅中断了等待响应，请求可能已发往 PLC；其回包会遗留在接收队列，
+            // 使后续请求的响应错位（序列号/完整性校验随后会强制断连）。这里主动丢弃连接，下次自动重连。
+            await DisconnectCoreAsync().ConfigureAwait(false);
             throw;
         }
         catch (Exception ex)
@@ -354,7 +357,10 @@ public sealed class S7PlusClient : IAsyncDisposable
             case PlcTagString or PlcTagWString or PlcTagChar or PlcTagWChar
                 or PlcTagDate or PlcTagTimeOfDay or PlcTagTime or PlcTagDateAndTime
                 or PlcTagS5Time or PlcTagLTime or PlcTagLTOD or PlcTagLDT or PlcTagDTL
-                or PlcTagPointer or PlcTagAny:
+                or PlcTagPointer or PlcTagAny
+                // 字符串/日期时间数组：协议层为 ValueUSIntArray，必须按 PlcTag 语义解码，
+                // 不能走 ② 的 FormatArray（那会把底层字节当数值逗号拼接）
+                or PlcTagStringArray or PlcTagDateAndTimeArray:
                 tag.ProcessReadResult(value, 0);
                 if (tag.Quality != PlcTagQC.TAG_QUALITY_GOOD)
                 {
@@ -371,6 +377,9 @@ public sealed class S7PlusClient : IAsyncDisposable
                     PlcTagDateAndTime d => d.Value.ToString(DateTimeFormat, ic),
                     PlcTagDTL d => d.Value.ToString(DateTimeFormat, ic),
                     PlcTagLDT d => DateTime.UnixEpoch.AddTicks((long)(d.Value / 100)).ToString(DateTimeFormat, ic),
+                    // 字符串/日期时间数组：逐元素语义格式化后逗号拼接
+                    PlcTagStringArray sa => string.Join(",", sa.Value),
+                    PlcTagDateAndTimeArray da => string.Join(",", da.Value.Select(d => d.ToString(DateTimeFormat, ic))),
                     // 时长/时刻类(Time/LTime/S5Time/TimeOfDay/LTOD)与指针等：保留可读格式，去质量前缀
                     _ => StripQuality(tag.ToString())
                 };
@@ -489,6 +498,8 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (OperationCanceledException)
         {
+            // 同 ReadAsync：取消后连接的协议状态不可知，丢弃以触发下次重连
+            await DisconnectCoreAsync().ConfigureAwait(false);
             throw;
         }
         catch (Exception ex)

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal class GetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
@@ -42,8 +44,9 @@ internal class GetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
         ret += S7p.DecodeUInt32Vlq(buffer, out itemnr);
         while (itemnr > 0)
         {
-            ret += S7p.DecodeUInt64Vlq(buffer, out _);
-            ErrorValues.Add(itemnr, 0);
+            // 每项的 64 位返回码必须保留（原实现误丢弃存 0，导致读失败的 tag 被当作成功）
+            ret += S7p.DecodeUInt64Vlq(buffer, out var retval);
+            ErrorValues.Add(itemnr, retval);
             ret += S7p.DecodeUInt32Vlq(buffer, out itemnr);
         }
         ret += S7p.DecodeUInt32Vlq(buffer, out var iid);
@@ -53,37 +56,35 @@ internal class GetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<GetMultiVariablesResponse>{Environment.NewLine}";
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>{Environment.NewLine}";
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>{Environment.NewLine}";
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>{Environment.NewLine}";
-        s += $"<ResponseSet>{Environment.NewLine}";
-        s += $"<ReturnValue>{ReturnValue}</ReturnValue>{Environment.NewLine}";
-
-        s += $"<ValueList>{Environment.NewLine}";
+        var sb = new StringBuilder();
+        sb.AppendLine("<GetMultiVariablesResponse>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine("<ResponseSet>");
+        sb.AppendLine($"<ReturnValue>{ReturnValue}</ReturnValue>");
+        sb.AppendLine("<ValueList>");
         foreach (var value in Values)
         {
-            s += $"<Value>{Environment.NewLine}";
-            s += $"<ItemNr>{value.Key}</ItemNr>{Environment.NewLine}";
-            s += value.Value.ToString();
-            s += $"</Value>{Environment.NewLine}";
+            sb.AppendLine($"<Value>");
+            sb.AppendLine($"<ItemNr>{value.Key}</ItemNr>");
+            sb.AppendLine(value.Value.ToString());
+            sb.AppendLine($"</Value>");
         }
-        s += $"</ValueList>{Environment.NewLine}";
-
-        s += $"<ErrorValueList>{Environment.NewLine}";
+        sb.AppendLine("</ValueList>");
+        sb.AppendLine("<ErrorValueList>");
         foreach (var errval in ErrorValues)
         {
-            s += $"<ErrorValue>{Environment.NewLine}";
-            s += $"<ItemNr>{errval.Key}</ItemNr>{Environment.NewLine}";
-            s += $"<ReturnValue>{errval.Value}</ReturnValue>{Environment.NewLine}";
-            s += $"</ErrorValue>{Environment.NewLine}";
+            sb.AppendLine("<ErrorValue>");
+            sb.AppendLine($"<ItemNr>{errval.Key}</ItemNr>");
+            sb.AppendLine($"<ReturnValue>{errval.Value}</ReturnValue>");
+            sb.AppendLine("</ErrorValue>");
         }
-        s += $"</ErrorValueList>{Environment.NewLine}";
-        s += $"</ResponseSet>{Environment.NewLine}";
-        s += $"<IntegrityId>{IntegrityId}</IntegrityId>{Environment.NewLine}";
-        s += $"</GetMultiVariablesResponse>{Environment.NewLine}";
-        return s;
+        sb.AppendLine("</ErrorValueList>");
+        sb.AppendLine("</ResponseSet>");
+        sb.AppendLine($"<IntegrityId>{IntegrityId}</IntegrityId>");
+        sb.AppendLine("</GetMultiVariablesResponse>");
+        return sb.ToString();
     }
 
     public static GetMultiVariablesResponse? DeserializeFromPdu(Stream pdu)

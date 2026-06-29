@@ -2129,7 +2129,7 @@ internal sealed class ValueTimestampArray : PValue
 {
     ulong[] Value = [];
 
-    public ValueTimestampArray(ulong[] value) : this(value, 0)
+    public ValueTimestampArray(ulong[] value) : this(value, FLAGS_ARRAY)
     {
     }
 
@@ -2310,7 +2310,7 @@ internal sealed class ValueTimespanArray : PValue
     {
         var ret = 0;
         ret += S7p.EncodeByte(buffer, DatatypeFlags);
-        ret += S7p.EncodeByte(buffer, Datatype.LReal);
+        ret += S7p.EncodeByte(buffer, Datatype.Timespan);
         ret += S7p.EncodeUInt32Vlq(buffer, (uint)Value.Length);
         for (var i = 0; i < Value.Length; i++)
         {
@@ -2728,7 +2728,13 @@ internal sealed class ValueBlobArray : PValue
         ret += S7p.EncodeUInt32Vlq(buffer, (uint)Value.Length);
         for (var i = 0; i < Value.Length; i++)
         {
-            ret += Value[i].Serialize(buffer);
+            // 仅内联每个 blob 的主体（rootId+长度+数据）；不能调用 ValueBlob.Serialize，
+            // 因为后者会额外写出 {flags, Datatype.Blob} 头，而 Deserialize 逐元素并不读取该头。
+            // 注：带类型 blob（BlobRootId>1 / HasBlobType）的写出不在此支持范围（解码端为只读场景）。
+            var data = Value[i].GetValue();
+            ret += S7p.EncodeUInt32Vlq(buffer, Value[i].BlobRootId);
+            ret += S7p.EncodeUInt32Vlq(buffer, (uint)data.Length);
+            ret += S7p.EncodeOctets(buffer, data);
         }
         return ret;
     }
@@ -2888,7 +2894,8 @@ internal sealed class ValueWString : PValue
         var ret = 0;
         ret += S7p.EncodeByte(buffer, DatatypeFlags);
         ret += S7p.EncodeByte(buffer, Datatype.WString);
-        ret += S7p.EncodeUInt32Vlq(buffer, (uint)Value.Length);
+        // 长度前缀必须为 UTF-8 字节数（DecodeWString 按字节读取），原实现用字符数会导致非 ASCII 字符串错位
+        ret += S7p.EncodeUInt32Vlq(buffer, (uint)Encoding.UTF8.GetByteCount(Value));
         ret += S7p.EncodeWString(buffer, Value);
         return ret;
     }
@@ -2941,7 +2948,7 @@ internal sealed class ValueWStringArray : PValue
         ret += S7p.EncodeUInt32Vlq(buffer, (uint)Value.Length);
         for (var i = 0; i < Value.Length; i++)
         {
-            ret += S7p.EncodeUInt32Vlq(buffer, (uint)Value[i].Length);
+            ret += S7p.EncodeUInt32Vlq(buffer, (uint)Encoding.UTF8.GetByteCount(Value[i]));
             ret += S7p.EncodeWString(buffer, Value[i]);
         }
         return ret;
@@ -3017,7 +3024,7 @@ internal sealed class ValueWStringSparseArray : PValue
         foreach (var v in Value)
         {
             ret += S7p.EncodeUInt32Vlq(buffer, v.Key);
-            ret += S7p.EncodeUInt32Vlq(buffer, (uint)v.Value.Length);
+            ret += S7p.EncodeUInt32Vlq(buffer, (uint)Encoding.UTF8.GetByteCount(v.Value));
             ret += S7p.EncodeWString(buffer, v.Value);
         }
         ret += S7p.EncodeByte(buffer, 0);

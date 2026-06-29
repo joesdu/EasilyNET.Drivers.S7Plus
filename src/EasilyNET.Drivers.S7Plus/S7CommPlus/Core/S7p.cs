@@ -230,6 +230,7 @@ internal static class S7p
     public static int DecodeUInt32Vlq(Stream buffer, out uint value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
+        if (buffer.Length - buffer.Position < 1) { value = 0; return 0; } // 流尾保护，避免把 -1 当作 0xFF 续位
         int counter;
         uint val = 0;
         byte octet;
@@ -254,6 +255,7 @@ internal static class S7p
     public static int DecodeInt32Vlq(Stream buffer, out int value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
+        if (buffer.Length - buffer.Position < 1) { value = 0; return 0; } // 流尾保护，避免把 -1 当作 0xFF 续位
         int counter;
         var val = 0;
         byte octet;
@@ -391,6 +393,7 @@ internal static class S7p
     public static int DecodeUInt64Vlq(Stream buffer, out ulong value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
+        if (buffer.Length - buffer.Position < 1) { value = 0; return 0; } // 流尾保护，避免把 -1 当作 0xFF 续位
         int counter;
         ulong val = 0;
         byte octet;
@@ -423,6 +426,7 @@ internal static class S7p
     public static int DecodeInt64Vlq(Stream buffer, out long value)
     {
         ArgumentNullException.ThrowIfNull(buffer);
+        if (buffer.Length - buffer.Position < 1) { value = 0; return 0; } // 流尾保护，避免把 -1 当作 0xFF 续位
         long val = 0;
         byte octet;
         byte cont = 0;

@@ -34,7 +34,7 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
 
     #region S7commPlus
 
-    private bool m_SslActive;
+    private volatile bool m_SslActive; // 接收泵线程读取、请求线程写入，volatile 避免弱内存序下读到陈旧值
     private S7TlsConnector? m_sslconn;
     private readonly ILogger log;
     private bool m_disposed;
@@ -324,6 +324,13 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
             if (_LastError == 0)
             {
                 Size = GetWordAt(PDU, 2);
+                // 校验 TPKT 总长度：必须 >= 头长且不超过接收缓冲，避免畸形/超大帧越界写入固定 PDU 缓冲
+                if (Size < IsoHSize || Size > PDU.Length)
+                {
+                    _LastError = S7Consts.errIsoInvalidPDU;
+                    log.LogDebug("S7Client - RecvIsoPacket: invalid TPKT length {Size}, aborting receive loop", Size);
+                    throw new InvalidDataException($"Invalid TPKT length: {Size}");
+                }
                 if (Size == IsoHSize)
                 {
                     _LastError = await Socket.ReceiveAsync(PDU, 4, 3, applyReadTimeout: true, ct).ConfigureAwait(false); // skip empty COTP, loop
