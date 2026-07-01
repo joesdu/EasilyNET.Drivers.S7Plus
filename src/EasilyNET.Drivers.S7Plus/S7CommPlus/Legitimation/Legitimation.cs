@@ -3,6 +3,7 @@
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Legitimation;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
+using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
@@ -310,6 +311,9 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="password">PLC password</param>
     /// <param name="username">PLC username (optional)</param>
     /// <returns>Build payload</returns>
+    // CA5350：SHA1 由 S7CommPlus 传统(legacy)登录协议强制约定，PLC 固件端亦以 SHA1 计算口令摘要，
+    // 必须逐字节匹配，无法替换为更强算法（否则旧固件设备认证必然失败）。新登录路径已改用 SHA256+AES-CBC。
+    [SuppressMessage("Security", "CA5350:Do Not Use Weak Cryptographic Algorithms", Justification = "SHA1 is mandated by the S7CommPlus legacy legitimation protocol; the PLC firmware computes the same SHA1 digest, so it cannot be replaced without breaking authentication with older firmware.")]
     private static byte[] BuildLegitimationPayload(string password, string username = "")
     {
         var payload = new ValueStruct(Ids.LID_LegitimationPayloadStruct);
@@ -343,9 +347,11 @@ internal sealed partial class S7CommPlusConnection
     /// <param name="password">PLC password</param>
     /// <param name="ct">cancellation token</param>
     /// <returns>error code (0 = OK)</returns>
+    // CA5350：challengeResponse = SHA1(password) XOR challenge 是 S7CommPlus 传统登录的握手算法，
+    // challenge 长度即 SHA1 摘要长度(20 字节)且由 PLC 下发，换用更强算法会破坏长度校验与 PLC 端匹配，无法替换。
+    [SuppressMessage("Security", "CA5350:Do Not Use Weak Cryptographic Algorithms", Justification = "SHA1 is mandated by the S7CommPlus legacy legitimation challenge-response; the challenge length equals the SHA1 digest length and is dictated by the PLC firmware, so it cannot be replaced.")]
     private async Task<int> LegitimateLegacyAsync(string password, CancellationToken ct = default)
     {
-
         // Get challenge
         var getVarSubstreamedReq_challange = new GetVarSubstreamedRequest(ProtocolVersion.V2)
         {
