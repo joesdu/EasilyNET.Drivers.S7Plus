@@ -1,9 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using Microsoft.Extensions.Logging;
-using System.Globalization;
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 // TODO: Maybe there's room for improvement, as the array classes duplicate many code of the base classes
@@ -265,7 +261,7 @@ internal sealed class ValueBoolArray : PValue
         var s = new StringBuilder($"""<Value type ="BoolArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -363,7 +359,7 @@ internal sealed class ValueUSIntArray : PValue
         var s = new StringBuilder($"""<Value type ="USIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -460,7 +456,7 @@ internal sealed class ValueUIntArray : PValue
         var s = new StringBuilder($"""<Value type ="UIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -488,7 +484,7 @@ internal sealed class ValueUIntArray : PValue
 
 internal sealed class ValueUDInt : PValue
 {
-    public uint Value {  get; private set; }
+    public uint Value { get; private set; }
 
     public ValueUDInt(uint value) : this(value, 0)
     {
@@ -565,7 +561,7 @@ internal sealed class ValueUDIntArray : PValue
         var s = new StringBuilder($"""<Value type ="UDIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -637,7 +633,7 @@ internal sealed class ValueUDIntSparseArray : PValue
         var s = new StringBuilder("""<Value type ="UDIntSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"""<Value key="{v.Key}">{v.Value}</Value>""");
+            s.Append(CultureInfo.InvariantCulture, $"""<Value key="{v.Key}">{v.Value}</Value>""");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -751,7 +747,7 @@ internal sealed class ValueULIntArray : PValue
         var s = new StringBuilder($"""<Value type ="ULIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -854,7 +850,7 @@ internal sealed class ValueSIntArray : PValue
         var s = new StringBuilder($"""<Value type ="SIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -952,7 +948,7 @@ internal sealed class ValueIntArray : PValue
         var s = new StringBuilder($"""<Value type ="IntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1057,7 +1053,7 @@ internal sealed class ValueDIntArray : PValue
         var s = new StringBuilder($"""<Value type ="DIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1125,7 +1121,7 @@ internal sealed class ValueDIntSparseArray : PValue
         var s = new StringBuilder($"""<Value type ="DIntSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"""<Value key="{v.Key}">{v.Value}</Value>""");
+            s.Append(CultureInfo.InvariantCulture, $"""<Value key="{v.Key}">{v.Value}</Value>""");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1239,7 +1235,7 @@ internal sealed class ValueLIntArray : PValue
         var s = new StringBuilder($"""<Value type ="LIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1342,7 +1338,7 @@ internal sealed class ValueByteArray : PValue
         var s = new StringBuilder($"""<Value type ="ByteArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1439,7 +1435,7 @@ internal sealed class ValueWordArray : PValue
         var s = new StringBuilder($"""<Value type ="WordArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1536,7 +1532,7 @@ internal sealed class ValueDWordArray : PValue
         var s = new StringBuilder($"""<Value type ="DWordArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1633,7 +1629,7 @@ internal sealed class ValueLWordArray : PValue
         var s = new StringBuilder($"""<Value type ="LWordArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1730,7 +1726,7 @@ internal sealed class ValueRealArray : PValue
         var s = new StringBuilder($"""<Value type ="RealArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1825,7 +1821,7 @@ internal sealed class ValueLRealArray : PValue
         var s = new StringBuilder($"""<Value type ="LRealArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1951,7 +1947,7 @@ internal sealed class ValueTimestampArray : PValue
         var s = new StringBuilder($"""<Value type="TimestampArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{ValueTimestamp.ToString(Value[i])}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{ValueTimestamp.ToString(Value[i])}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2101,7 +2097,7 @@ internal sealed class ValueTimespanArray : PValue
         var s = new StringBuilder($"""<Value type="ValueTimespanArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{ValueTimespan.ToString(Value[i])}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{ValueTimespan.ToString(Value[i])}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2205,7 +2201,7 @@ internal sealed class ValueRIDArray : PValue
         var s = new StringBuilder($"""<Value type="RIDArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2310,7 +2306,7 @@ internal sealed class ValueAIDArray : PValue
         var s = new StringBuilder($"""<Value type="AIDArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2488,7 +2484,7 @@ internal sealed class ValueBlobArray : PValue
         var s = new StringBuilder($"""<Value type="ValueBlobArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2558,7 +2554,7 @@ internal sealed class ValueBlobSparseArray : PValue
         var s = new StringBuilder($"""<Value type="BlobSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"""<Value key="{v.Key}" BlobRootId="{v.Value.BlobRootId}">""");
+            s.Append(CultureInfo.InvariantCulture, $"""<Value key="{v.Key}" BlobRootId="{v.Value.BlobRootId}">""");
             if (Value != null && v.Value.Value != null)
             {
                 s.Append(BitConverter.ToString(v.Value.Value));
@@ -2688,7 +2684,7 @@ internal sealed class ValueWStringArray : PValue
         var s = new StringBuilder($"""<Value type="WStringArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s.Append($"<Value>{Value[i]}</Value>");
+            s.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2758,7 +2754,7 @@ internal sealed class ValueWStringSparseArray : PValue
         var s = new StringBuilder($"""<Value type="WStringSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"""<Value key="{v.Key}">{v.Value}</Value>""");
+            s.Append(CultureInfo.InvariantCulture, $"""<Value key="{v.Key}">{v.Value}</Value>""");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -2888,16 +2884,16 @@ internal sealed class ValueStruct : PValue
     {
         var s = new StringBuilder("");
         s.AppendLine($"""<Value type="Struct">""");
-        s.AppendLine($"<ID>{Value}</ID>");
+        s.AppendLine(CultureInfo.InvariantCulture, $"<ID>{Value}</ID>");
         if (Value is (> 0x90000000 and < 0x9fffffff) or (> 0x02000000 and < 0x02ffffff))
         {
-            s.AppendLine($"<PackedStructInterfaceTimestamp>{PackedStructInterfaceTimestamp}</PackedStructInterfaceTimestamp>");
-            s.AppendLine($"<PackedStructTransportFlags>{PackedStructTransportFlags}</PackedStructTransportFlags>");
+            s.AppendLine(CultureInfo.InvariantCulture, $"<PackedStructInterfaceTimestamp>{PackedStructInterfaceTimestamp}</PackedStructInterfaceTimestamp>");
+            s.AppendLine(CultureInfo.InvariantCulture, $"<PackedStructTransportFlags>{PackedStructTransportFlags}</PackedStructTransportFlags>");
         }
         foreach (var elem in Elements)
         {
             s.AppendLine("<Element>");
-            s.AppendLine($"<ID>{elem.Key}</ID>");
+            s.AppendLine(CultureInfo.InvariantCulture, $"<ID>{elem.Key}</ID>");
             s.AppendLine(elem.Value.ToString());
             s.AppendLine("</Element>");
         }

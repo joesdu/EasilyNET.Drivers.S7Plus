@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal interface IOffsetInfoType_Relation
@@ -214,29 +212,29 @@ internal class POffsetInfoType_StructMDim : POffsetInfoType, IOffsetInfoType_Rel
     {
         var sb = new StringBuilder();
         sb.AppendLine("<POffsetInfoType_StructMDim>");
-        sb.AppendLine($"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
-        sb.AppendLine($"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
-        sb.AppendLine($"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
-        sb.AppendLine($"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
-        sb.AppendLine($"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>");
-        sb.AppendLine($"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>");
         for (var d = 0; d < 6; d++)
         {
-            sb.AppendLine($"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
         }
         for (var d = 0; d < 6; d++)
         {
-            sb.AppendLine($"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
         }
 
-        sb.AppendLine($"<OptimizedStructSize>{OptimizedStructSize}</OptimizedStructSize>");
-        sb.AppendLine($"<NonoptimizedStructSize>{NonoptimizedStructSize}</NonoptimizedStructSize>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<OptimizedStructSize>{OptimizedStructSize}</OptimizedStructSize>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<NonoptimizedStructSize>{NonoptimizedStructSize}</NonoptimizedStructSize>");
 
-        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
-        sb.AppendLine($"<StructInfo4>{StructInfo4}</StructInfo4>");
-        sb.AppendLine($"<StructInfo5>{StructInfo5}</StructInfo5>");
-        sb.AppendLine($"<StructInfo6>{StructInfo6}</StructInfo6>");
-        sb.AppendLine($"<StructInfo7>{StructInfo7}</StructInfo7>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<StructInfo4>{StructInfo4}</StructInfo4>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<StructInfo5>{StructInfo5}</StructInfo5>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<StructInfo6>{StructInfo6}</StructInfo6>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<StructInfo7>{StructInfo7}</StructInfo7>");
 
         sb.AppendLine($"</POffsetInfoType_StructMDim>");
 
@@ -454,19 +452,19 @@ internal class POffsetInfoType_ArrayMDim : POffsetInfoType, IOffsetInfoType_MDim
     {
         var sb = new StringBuilder();
         sb.AppendLine("<POffsetInfoType_ArrayMDim>");
-        sb.AppendLine($"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
-        sb.AppendLine($"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
-        sb.AppendLine($"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
-        sb.AppendLine($"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
-        sb.AppendLine($"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>");
-        sb.AppendLine($"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>");
         for (var d = 0; d < 6; d++)
         {
-            sb.AppendLine($"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
         }
         for (var d = 0; d < 6; d++)
         {
-            sb.AppendLine($"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
         }
 
         sb.AppendLine("</POffsetInfoType_ArrayMDim>");
@@ -688,29 +686,29 @@ internal class POffsetInfoType_FbArray : POffsetInfoType, IOffsetInfoType_Relati
     {
         var sb = new StringBuilder();
         sb.AppendLine("<POffsetInfoType_FbArray>");
-        sb.AppendLine($"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
-        sb.AppendLine($"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
-        sb.AppendLine($"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
-        sb.AppendLine($"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
-        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
-        sb.AppendLine($"<Info4>{Info4}</Info4>");
-        sb.AppendLine($"<Info5>{Info5}</Info5>");
-        sb.AppendLine($"<Info6>{Info6}</Info6>");
-        sb.AppendLine($"<Info7>{Info7}</Info7>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Info4>{Info4}</Info4>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Info5>{Info5}</Info5>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Info6>{Info6}</Info6>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Info7>{Info7}</Info7>");
 
-        sb.AppendLine($"<RetainSectionOffset>{RetainSectionOffset}</RetainSectionOffset>");
-        sb.AppendLine($"<VolatileSectionOffset>{VolatileSectionOffset}</VolatileSectionOffset>");
-        sb.AppendLine($"<ClassicSectionSize>{ClassicSectionSize}</ClassicSectionSize>");
-        sb.AppendLine($"<RetainSectionSize>{RetainSectionSize}</RetainSectionSize>");
-        sb.AppendLine($"<VolatileSectionSize>{VolatileSectionSize}</VolatileSectionSize>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RetainSectionOffset>{RetainSectionOffset}</RetainSectionOffset>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<VolatileSectionOffset>{VolatileSectionOffset}</VolatileSectionOffset>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ClassicSectionSize>{ClassicSectionSize}</ClassicSectionSize>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RetainSectionSize>{RetainSectionSize}</RetainSectionSize>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<VolatileSectionSize>{VolatileSectionSize}</VolatileSectionSize>");
 
         for (var d = 0; d < 6; d++)
         {
-            sb.AppendLine($"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
         }
         for (var d = 0; d < 6; d++)
         {
-            sb.AppendLine($"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
         }
 
         sb.AppendLine($"</POffsetInfoType_FbArray>");

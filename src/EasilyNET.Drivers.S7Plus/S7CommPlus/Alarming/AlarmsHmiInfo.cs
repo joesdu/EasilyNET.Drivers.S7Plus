@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
-using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Alarming;
 
@@ -68,21 +67,21 @@ internal sealed class AlarmsHmiInfo
     {
         var sb = new StringBuilder();
         sb.AppendLine("<AlarmsHmiInfo>");
-        sb.AppendLine($"<SyntaxId>{SyntaxId}</SyntaxId>");
-        sb.AppendLine($"<Version>{Version}</Version>");
-        sb.AppendLine($"<ClientAlarmId>{ClientAlarmId}</ClientAlarmId>");
-        sb.AppendLine($"<Priority>{Priority}</Priority>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SyntaxId>{SyntaxId}</SyntaxId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Version>{Version}</Version>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ClientAlarmId>{ClientAlarmId}</ClientAlarmId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Priority>{Priority}</Priority>");
         if (SyntaxId >= 257)
         {
-            sb.AppendLine($"<Reserved1>{Reserved1}</Reserved1>");
-            sb.AppendLine($"<Reserved2>{Reserved2}</Reserved2>");
-            sb.AppendLine($"<Reserved3>{Reserved3}</Reserved3>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<Reserved1>{Reserved1}</Reserved1>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<Reserved2>{Reserved2}</Reserved2>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<Reserved3>{Reserved3}</Reserved3>");
             if (SyntaxId >= 258)
             {
-                sb.AppendLine($"<AlarmClass>{AlarmClass}</AlarmClass>");
-                sb.AppendLine($"<Producer>{Producer}</Producer>");
-                sb.AppendLine($"<GroupId>{GroupId}</GroupId>");
-                sb.AppendLine($"<Flags>{Flags}</Flags>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<AlarmClass>{AlarmClass}</AlarmClass>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<Producer>{Producer}</Producer>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<GroupId>{GroupId}</GroupId>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<Flags>{Flags}</Flags>");
             }
         }
         sb.AppendLine("</AlarmsHmiInfo>");

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
-using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
@@ -157,14 +156,14 @@ internal sealed class CommRessources
     {
         var sb = new StringBuilder();
         sb.AppendLine($"<CommRessources>");
-        sb.AppendLine($"<TagsPerReadRequestMax>{TagsPerReadRequestMax}</TagsPerReadRequestMax>");
-        sb.AppendLine($"<TagsPerWriteRequestMax>{TagsPerWriteRequestMax}</TagsPerWriteRequestMax>");
-        sb.AppendLine($"<PlcAttributesMax>{PlcAttributesMax}</PlcAttributesMax>");
-        sb.AppendLine($"<PlcAttributesFree>{PlcAttributesFree}</PlcAttributesFree>");
-        sb.AppendLine($"<PlcSubscriptionsMax>{PlcSubscriptionsMax}</PlcSubscriptionsMax>");
-        sb.AppendLine($"<PlcSubscriptionsFree>{PlcSubscriptionsFree}</PlcSubscriptionsFree>");
-        sb.AppendLine($"<SubscriptionMemoryMax>{SubscriptionMemoryMax}</SubscriptionMemoryMax>");
-        sb.AppendLine($"<SubscriptionMemoryFree>{SubscriptionMemoryFree}</SubscriptionMemoryFree>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<TagsPerReadRequestMax>{TagsPerReadRequestMax}</TagsPerReadRequestMax>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<TagsPerWriteRequestMax>{TagsPerWriteRequestMax}</TagsPerWriteRequestMax>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<PlcAttributesMax>{PlcAttributesMax}</PlcAttributesMax>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<PlcAttributesFree>{PlcAttributesFree}</PlcAttributesFree>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<PlcSubscriptionsMax>{PlcSubscriptionsMax}</PlcSubscriptionsMax>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<PlcSubscriptionsFree>{PlcSubscriptionsFree}</PlcSubscriptionsFree>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SubscriptionMemoryMax>{SubscriptionMemoryMax}</SubscriptionMemoryMax>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SubscriptionMemoryFree>{SubscriptionMemoryFree}</SubscriptionMemoryFree>");
         sb.AppendLine($"</CommRessources>");
         return sb.ToString();
     }

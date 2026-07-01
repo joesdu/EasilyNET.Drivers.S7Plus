@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class CreateObjectResponse(byte protocolVersion) : IS7pResponse
@@ -48,20 +46,20 @@ internal sealed class CreateObjectResponse(byte protocolVersion) : IS7pResponse
     {
         var sb = new StringBuilder();
         sb.AppendLine("<CreateObjectResponse>");
-        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
-        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
-        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<TransportFlags>{TransportFlags}</TransportFlags>");
         sb.AppendLine("<ResponseSet>");
-        sb.AppendLine($"<ReturnValue>{ReturnValue}</ReturnValue>");
-        sb.AppendLine($"<ObjectIdCount>{ObjectIdCount}</ObjectIdCount>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ReturnValue>{ReturnValue}</ReturnValue>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ObjectIdCount>{ObjectIdCount}</ObjectIdCount>");
         if (ObjectIds != null)
         {
             foreach (var id in ObjectIds)
             {
-                sb.AppendLine($"<ObjectId>{id}</ObjectId>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<ObjectId>{id}</ObjectId>");
             }
         }
-        sb.AppendLine($"<ResponseObject>{ResponseObject?.ToString()}</ResponseObject>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ResponseObject>{ResponseObject?.ToString()}</ResponseObject>");
         sb.AppendLine("</ResponseSet>");
         sb.AppendLine("</CreateObjectResponse>");
         return sb.ToString();

@@ -2,10 +2,6 @@
 // Copyright (c) 2026 Joe Du. See LICENSE.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Collections.Concurrent;
-using System.Globalization;
 
 namespace EasilyNET.Drivers.S7Plus;
 
@@ -107,13 +103,15 @@ public sealed class S7PlusClient : IAsyncDisposable
         {
             return true;
         }
+        S7CommPlusConnection? conn = null;
         try
         {
-            var conn = new S7CommPlusConnection(logger);
+            conn = new S7CommPlusConnection(logger);
             var res = await conn.ConnectAsync(host, password, username, timeoutMs, cancellationToken).ConfigureAwait(false);
             if (res == 0)
             {
                 connection = conn;
+                conn = null; // 所有权已转给字段，防止 finally 二次释放
                 isConnected = true;
                 resolvedCache.Clear();
                 if (logger.IsEnabled(LogLevel.Debug))
@@ -126,7 +124,6 @@ public sealed class S7PlusClient : IAsyncDisposable
             {
                 logger.LogDebug("S7PlusClient: connect to {Host} failed, res=0x{Res:X}", host, res);
             }
-            try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* ignore */ }
             return false;
         }
         catch (OperationCanceledException)
@@ -142,6 +139,14 @@ public sealed class S7PlusClient : IAsyncDisposable
             }
             await DisconnectCoreAsync().ConfigureAwait(false);
             return false;
+        }
+        finally
+        {
+            // 未转移所有权（连接失败或抛异常）时统一释放，堵住异常路径下 conn 泄漏
+            if (conn is not null)
+            {
+                try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* ignore */ }
+            }
         }
     }
 

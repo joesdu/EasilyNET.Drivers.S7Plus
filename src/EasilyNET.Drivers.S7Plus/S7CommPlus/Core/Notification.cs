@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class Notification(byte protocolVersion)
@@ -145,21 +143,21 @@ internal sealed class Notification(byte protocolVersion)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<Notification>");
-        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
-        sb.AppendLine($"<SubscriptionObjectId>{SubscriptionObjectId}</SubscriptionObjectId>");
-        sb.AppendLine($"<Unknown2>{Unknown2}</Unknown2>");
-        sb.AppendLine($"<Unknown3>{Unknown3}</Unknown3>");
-        sb.AppendLine($"<Unknown4>{Unknown4}</Unknown4>");
-        sb.AppendLine($"<NotificationCreditTick>{NotificationCreditTick}</NotificationCreditTick>");
-        sb.AppendLine($"<NotificationSequenceNumber>{NotificationSequenceNumber}</NotificationSequenceNumber>");
-        sb.AppendLine($"<SubscriptionChangeCounter>{SubscriptionChangeCounter}</SubscriptionChangeCounter>");
-        sb.AppendLine($"<Add1Timestamp>{$"{Add1Timestamp}.{Add1Timestamp.Millisecond:D03} UTC"}</Add1Timestamp>");
-        sb.AppendLine($"<Add1SubscriptionChangeCounter>{Add1SubscriptionChangeCounter}</Add1SubscriptionChangeCounter>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SubscriptionObjectId>{SubscriptionObjectId}</SubscriptionObjectId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Unknown2>{Unknown2}</Unknown2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Unknown3>{Unknown3}</Unknown3>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Unknown4>{Unknown4}</Unknown4>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<NotificationCreditTick>{NotificationCreditTick}</NotificationCreditTick>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<NotificationSequenceNumber>{NotificationSequenceNumber}</NotificationSequenceNumber>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SubscriptionChangeCounter>{SubscriptionChangeCounter}</SubscriptionChangeCounter>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Add1Timestamp>{$"{Add1Timestamp}.{Add1Timestamp.Millisecond:D03} UTC"}</Add1Timestamp>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Add1SubscriptionChangeCounter>{Add1SubscriptionChangeCounter}</Add1SubscriptionChangeCounter>");
         sb.AppendLine("<ValueList>");
         foreach (var value in Values)
         {
             sb.AppendLine("<Value>");
-            sb.AppendLine($"<ItemRefId>{value.Key}</ItemRefId>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<ItemRefId>{value.Key}</ItemRefId>");
             sb.AppendLine(value.Value.ToString());
             sb.AppendLine("</Value>");
         }
@@ -169,15 +167,15 @@ internal sealed class Notification(byte protocolVersion)
         foreach (var errval in ReturnValues)
         {
             sb.AppendLine("<ReturnValue>");
-            sb.AppendLine($"<ItemRefId>{errval.Key}</ItemRefId>");
-            sb.AppendLine($"<ReturnValue>{errval.Value}</ReturnValue>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<ItemRefId>{errval.Key}</ItemRefId>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<ReturnValue>{errval.Value}</ReturnValue>");
             sb.AppendLine("</ReturnValue>");
         }
         sb.AppendLine("</ReturnValueList>");
         // For alarm object(s)
-        sb.AppendLine($"<P2SubscriptionObjectId>{P2SubscriptionObjectId}</P2SubscriptionObjectId>");
-        sb.AppendLine($"<P2Unknown1>{P2Unknown1}</P2Unknown1>");
-        sb.AppendLine($"<P2ReturnValue>{P2ReturnValue}</P2ReturnValue>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<P2SubscriptionObjectId>{P2SubscriptionObjectId}</P2SubscriptionObjectId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<P2Unknown1>{P2Unknown1}</P2Unknown1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<P2ReturnValue>{P2ReturnValue}</P2ReturnValue>");
         sb.AppendLine("<P2Objects>");
         foreach (var p2o in P2Objects)
         {

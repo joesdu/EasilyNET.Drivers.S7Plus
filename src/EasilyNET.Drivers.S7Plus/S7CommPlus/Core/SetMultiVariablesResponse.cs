@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class SetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
@@ -43,22 +41,22 @@ internal sealed class SetMultiVariablesResponse(byte protocolVersion) : IS7pResp
     {
         var sb = new StringBuilder();
         sb.AppendLine("<SetMultiVariablesResponse>");
-        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
-        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
-        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<TransportFlags>{TransportFlags}</TransportFlags>");
         sb.AppendLine("<ResponseSet>");
-        sb.AppendLine($"<ReturnValue>{ReturnValue}</ReturnValue>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ReturnValue>{ReturnValue}</ReturnValue>");
         sb.AppendLine("<ErrorValueList>");
         foreach (var errval in ErrorValues)
         {
             sb.AppendLine("<ErrorValue>");
-            sb.AppendLine($"<ItemNr>{errval.Key}</ItemNr>");
-            sb.AppendLine($"<ReturnValue>{errval.Value}</ReturnValue>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<ItemNr>{errval.Key}</ItemNr>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<ReturnValue>{errval.Value}</ReturnValue>");
             sb.AppendLine("</ErrorValue>");
         }
         sb.AppendLine("</ErrorValueList>");
         sb.AppendLine("</ResponseSet>");
-        sb.AppendLine($"<IntegrityId>{IntegrityId}</IntegrityId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<IntegrityId>{IntegrityId}</IntegrityId>");
         sb.AppendLine("</SetMultiVariablesResponse>");
         return sb.ToString();
     }

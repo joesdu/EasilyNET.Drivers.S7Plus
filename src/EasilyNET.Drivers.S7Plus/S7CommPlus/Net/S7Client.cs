@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.S7Tls;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Threading.Channels;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
@@ -408,7 +406,7 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
             return;
         }
         m_disposed = true;
-        m_loopCts?.Cancel();
+        m_loopCts?.CancelAsync();
         m_sendQueue.Writer.TryComplete();
         try
         {

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
-using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
@@ -116,20 +115,20 @@ internal sealed class SetMultiVariablesRequest(byte protocolVersion) : IS7pReque
     {
         var sb = new StringBuilder();
         sb.AppendLine("<SetMultiVariablesRequest>");
-        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
-        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
-        sb.AppendLine($"<SessionId>{SessionId}</SessionId>");
-        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SessionId>{SessionId}</SessionId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<TransportFlags>{TransportFlags}</TransportFlags>");
         sb.AppendLine("<RequestSet>");
-        sb.AppendLine($"<InObjectId>{InObjectId}</InObjectId>");
-        sb.AppendLine($"<ItemCount>{ValueList.Count}</ItemCount>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<InObjectId>{InObjectId}</InObjectId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ItemCount>{ValueList.Count}</ItemCount>");
         if (InObjectId > 0)
         {
-            sb.AppendLine($"<ItemAddressCount>{AddressList.Count}</ItemAddressCount>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<ItemAddressCount>{AddressList.Count}</ItemAddressCount>");
             sb.AppendLine("<AddressList>");
             foreach (var id in AddressList)
             {
-                sb.AppendLine($"<Id>{id}</Id>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<Id>{id}</Id>");
             }
             sb.AppendLine("</AddressList>");
         }
@@ -140,7 +139,7 @@ internal sealed class SetMultiVariablesRequest(byte protocolVersion) : IS7pReque
             {
                 fieldCount += adr.NumberOfFields;
             }
-            sb.AppendLine($"<NumberOfFields>{fieldCount}</NumberOfFields>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<NumberOfFields>{fieldCount}</NumberOfFields>");
             sb.AppendLine("<AddressList>");
             foreach (var adr in AddressListVar)
             {
@@ -151,7 +150,7 @@ internal sealed class SetMultiVariablesRequest(byte protocolVersion) : IS7pReque
         sb.AppendLine("<ValueList>");
         foreach (var val in ValueList)
         {
-            sb.AppendLine($"<Value>{val}</Value>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<Value>{val}</Value>");
         }
         sb.AppendLine("</ValueList>");
         sb.AppendLine("</RequestSet>");

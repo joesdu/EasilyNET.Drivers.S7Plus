@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class CreateObjectRequest(byte protocolVersion, ushort seqNum, bool withIntegrityId) : IS7pRequest
@@ -76,14 +74,14 @@ internal sealed class CreateObjectRequest(byte protocolVersion, ushort seqNum, b
     {
         var sb = new StringBuilder();
         sb.AppendLine("<CreateObjectRequest>");
-        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
-        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
-        sb.AppendLine($"<SessionId>{SessionId}</SessionId>");
-        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<SessionId>{SessionId}</SessionId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<TransportFlags>{TransportFlags}</TransportFlags>");
         sb.AppendLine("<RequestSet>");
-        sb.AppendLine($"<RequestId>{RequestId}</RequestId>");
-        sb.AppendLine($"<RequestValue>{RequestValue}</RequestValue>");
-        sb.AppendLine($"<RequestObject>{RequestObject}</RequestObject>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RequestId>{RequestId}</RequestId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RequestValue>{RequestValue}</RequestValue>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RequestObject>{RequestObject}</RequestObject>");
         sb.AppendLine("</RequestSet>");
         sb.AppendLine("</CreateObjectRequest>");
         return sb.ToString();

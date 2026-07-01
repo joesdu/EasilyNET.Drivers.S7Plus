@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class PVartypeList
@@ -38,11 +36,11 @@ internal sealed class PVartypeList
     {
         var s = new StringBuilder("");
         s.AppendLine("<VartypeList>");
-        s.AppendLine($"<FirstId>{FirstId}</FirstId>");
+        s.AppendLine(CultureInfo.InvariantCulture, $"<FirstId>{FirstId}</FirstId>");
         var i = 1;
         foreach (var elem in Elements)
         {
-            s.AppendLine($"""<Element index="{i}">""");
+            s.AppendLine(CultureInfo.InvariantCulture, $"""<Element index="{i}">""");
             s.Append(elem.ToString());
             s.AppendLine("</Element>");
             i++;
@@ -54,6 +52,8 @@ internal sealed class PVartypeList
 
 internal sealed class PVartypeListElement
 {
+#pragma warning disable CA1823 // 避免未使用的私有字段
+#pragma warning disable IDE0051 // 删除未使用的私有成员
     /* flags in tag description for 1500 */
     private const int S7COMMP_TAGDESCR_ATTRIBUTE2_OFFSETINFOTYPE = 0xf000;      /* Bits 13..16 */
     private const int S7COMMP_TAGDESCR_ATTRIBUTE2_HMIVISIBLE = 0x0800;          /* Bit 12 */
@@ -87,6 +87,8 @@ internal sealed class PVartypeListElement
     private const int S7COMMP_TAGDESCR_BITOFFSETINFO_NONOPTBITOFFSET = 0x70;
     private const int S7COMMP_TAGDESCR_BITOFFSETINFO_CLASSIC = 0x08;
     private const int S7COMMP_TAGDESCR_BITOFFSETINFO_OPTBITOFFSET = 0x07;
+#pragma warning restore IDE0051 // 删除未使用的私有成员
+#pragma warning restore CA1823 // 避免未使用的私有字段
 
     public uint LID { get; private set; }
     public uint SymbolCrc { get; private set; }

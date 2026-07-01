@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using Microsoft.Extensions.Logging;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
-using System.Globalization;
-using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 
@@ -1885,10 +1882,10 @@ internal sealed class PlcTagStringArray(string name, ItemAddress address, uint s
     public override string ToString()
     {
         var sb = new StringBuilder();
-        sb.Append($"""<Value type ="StringArray" size="{Value.Length}">""");
+        sb.Append(CultureInfo.InvariantCulture, $"""<Value type ="StringArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            sb.Append($"<Value>{Value[i]}</Value>");
+            sb.Append(CultureInfo.InvariantCulture, $"<Value>{Value[i]}</Value>");
         }
         sb.Append("</Value>");
         return ResultString(this, sb.ToString());

@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using System.Text;
-
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 /// <summary>
@@ -92,20 +90,20 @@ internal sealed class SystemEvent(byte protocolVersion)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<SystemEvent>");
-        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
-        sb.AppendLine($"<Reserved1>{Reserved1}</Reserved1>");
-        sb.AppendLine($"<ConfirmedBytes>{ConfirmedBytes}</ConfirmedBytes>");
-        sb.AppendLine($"<Reserved2>{Reserved2}</Reserved2>");
-        sb.AppendLine($"<Reserved3>{Reserved3}</Reserved3>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Reserved1>{Reserved1}</Reserved1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<ConfirmedBytes>{ConfirmedBytes}</ConfirmedBytes>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Reserved2>{Reserved2}</Reserved2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Reserved3>{Reserved3}</Reserved3>");
         if (IsData)
         {
-            sb.AppendLine($"<Data>{Data}</Data>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<Data>{Data}</Data>");
             sb.AppendLine($"<Message></Message>");
         }
         else if (IsMessage)
         {
             sb.AppendLine($"<Data></Data>");
-            sb.AppendLine($"<Message>{Message}</Message>");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"<Message>{Message}</Message>");
         }
         else
         {

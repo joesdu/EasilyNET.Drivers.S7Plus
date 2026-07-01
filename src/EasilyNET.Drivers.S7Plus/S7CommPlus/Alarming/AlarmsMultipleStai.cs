@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
-using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Alarming;
 
@@ -55,18 +54,18 @@ internal sealed class AlarmsMultipleStai
     {
         var sb = new StringBuilder();
         sb.AppendLine("<AlarmsMultipleStai>");
-        sb.AppendLine($"<Alid>{Alid}</Alid>");
-        sb.AppendLine($"<AlarmDomain>{AlarmDomain}</AlarmDomain>");
-        sb.AppendLine($"<MessageType>{MessageType}</MessageType>");
-        sb.AppendLine($"<AlarmEnabled>{AlarmEnabled}</AlarmEnabled>");
-        sb.AppendLine($"<HmiInfoLength>{HmiInfoLength}</HmiInfoLength>");
-        sb.AppendLine($"<HmiInfo>{Environment.NewLine}{HmiInfo}{Environment.NewLine}</HmiInfo>");
-        sb.AppendLine($"<LidCount>{LidCount}</LidCount>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Alid>{Alid}</Alid>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AlarmDomain>{AlarmDomain}</AlarmDomain>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<MessageType>{MessageType}</MessageType>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AlarmEnabled>{AlarmEnabled}</AlarmEnabled>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<HmiInfoLength>{HmiInfoLength}</HmiInfoLength>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<HmiInfo>{HmiInfo}</HmiInfo>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<LidCount>{LidCount}</LidCount>");
         if (Lids != null)
         {
             foreach (var li in Lids)
             {
-                sb.AppendLine($"<Lid>{li}</Lid>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<Lid>{li}</Lid>");
             }
         }
         sb.AppendLine("</AlarmsMultipleStai>");

@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using Microsoft.Extensions.Logging;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Alarming;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
-using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus;
 
@@ -441,27 +439,23 @@ internal sealed class AlarmData(uint relationid)
     {
         var sb = new StringBuilder();
         sb.AppendLine("<AlarmData>");
-        sb.AppendLine($"<CpuAlarmId>{CpuAlarmId}</CpuAlarmId>");
-        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
-        sb.AppendLine($"""
-            <MultipleStai>
-            {MultipleStai}
-            </MultipleStai>
-            """);
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<CpuAlarmId>{CpuAlarmId}</CpuAlarmId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<MultipleStai>{MultipleStai}</MultipleStai>");
         sb.AppendLine("<AlText>");
-        sb.AppendLine($"<Infotext>{AlText.Infotext}</Infotext>");
-        sb.AppendLine($"<AlarmText>{AlText.AlarmText}</AlarmText>");
-        sb.AppendLine($"<AdditionalText1>{AlText.AdditionalText1}</AdditionalText1>");
-        sb.AppendLine($"<AdditionalText2>{AlText.AdditionalText2}</AdditionalText2>");
-        sb.AppendLine($"<AdditionalText3>{AlText.AdditionalText3}</AdditionalText3>");
-        sb.AppendLine($"<AdditionalText4>{AlText.AdditionalText4}</AdditionalText4>");
-        sb.AppendLine($"<AdditionalText5>{AlText.AdditionalText5}</AdditionalText5>");
-        sb.AppendLine($"<AdditionalText6>{AlText.AdditionalText6}</AdditionalText6>");
-        sb.AppendLine($"<AdditionalText7>{AlText.AdditionalText7}</AdditionalText7>");
-        sb.AppendLine($"<AdditionalText8>{AlText.AdditionalText8}</AdditionalText8>");
-        sb.AppendLine($"<AdditionalText9>{AlText.AdditionalText9}</AdditionalText9>");
-        sb.AppendLine($"<UnknownValue1>{AlText.UnknownValue1}</UnknownValue1>");
-        sb.AppendLine($"<UnknownValue2>{AlText.UnknownValue2}</UnknownValue2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<Infotext>{AlText.Infotext}</Infotext>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AlarmText>{AlText.AlarmText}</AlarmText>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText1>{AlText.AdditionalText1}</AdditionalText1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText2>{AlText.AdditionalText2}</AdditionalText2>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText3>{AlText.AdditionalText3}</AdditionalText3>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText4>{AlText.AdditionalText4}</AdditionalText4>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText5>{AlText.AdditionalText5}</AdditionalText5>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText6>{AlText.AdditionalText6}</AdditionalText6>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText7>{AlText.AdditionalText7}</AdditionalText7>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText8>{AlText.AdditionalText8}</AdditionalText8>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<AdditionalText9>{AlText.AdditionalText9}</AdditionalText9>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnknownValue1>{AlText.UnknownValue1}</UnknownValue1>");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"<UnknownValue2>{AlText.UnknownValue2}</UnknownValue2>");
         sb.AppendLine("</AlText>");
         sb.AppendLine("</AlarmData>");
         return sb.ToString();

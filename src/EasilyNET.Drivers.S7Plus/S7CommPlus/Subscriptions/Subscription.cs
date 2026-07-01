@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
-using Microsoft.Extensions.Logging;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
@@ -245,7 +244,7 @@ internal sealed partial class S7CommPlusConnection
                     // 信用额度为 0 等同“不再发送任何通知”，回绕到 0 会让长跑订阅卡死：跳过 0 保持数据流
                     if (m_NextCreditLimit <= 0)
                     {
-                        m_NextCreditLimit = (short)creditLimitStep;
+                        m_NextCreditLimit = creditLimitStep;
                     }
                     if (log.IsEnabled(LogLevel.Debug))
                     {

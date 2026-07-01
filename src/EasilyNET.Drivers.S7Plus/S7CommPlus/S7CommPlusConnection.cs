@@ -4,10 +4,6 @@ using EasilyNET.Drivers.S7Plus.S7CommPlus;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using System.Globalization;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace EasilyNET.Drivers.S7Plus;
@@ -156,7 +152,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             {
                 log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: discarding stale response seq={Seq}, expected {PendingResponseSeq}", item.Value.Seq, m_pendingResponseSeq);
             }
-            item.Value.Pdu.Dispose();
+            await item.Value.Pdu.DisposeAsync();
         }
     }
 
@@ -426,7 +422,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
     {
         if (log.IsEnabled(LogLevel.Debug))
         {
-            log.LogDebug("Received bytes: {Bytes}", string.Join(" ", b.Select(x => "0x" + x.ToString("X02"))));
+            log.LogDebug("Received bytes: {Bytes}", string.Join(" ", b.Select(x => "0x" + x.ToString("X02", CultureInfo.InvariantCulture))));
         }
     }
 
@@ -740,7 +736,6 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var chunk_startIndex = 0;
         do
         {
-            int res;
             var getMultiVarReq = new GetMultiVariablesRequest(ProtocolVersion.V2);
 
             getMultiVarReq.AddressList.Clear();
@@ -751,14 +746,13 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 count_perChunk++;
             }
 
-            res = SendS7plusFunctionObject(getMultiVarReq);
+            var res = SendS7plusFunctionObject(getMultiVarReq);
             m_LastError = 0;
             await WaitForNewS7plusReceivedAsync(m_ReadTimeout, ct).ConfigureAwait(false);
             if (m_LastError != 0)
             {
                 return (m_LastError, values, errors);
             }
-
             var getMultiVarRes = GetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
             res = CheckResponseWithIntegrity(getMultiVarReq, getMultiVarRes);
             if (res != 0)
