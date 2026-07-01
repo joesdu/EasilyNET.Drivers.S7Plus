@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal interface IOffsetInfoType_Relation
@@ -129,22 +131,21 @@ internal class POffsetInfoType_FbSfb : POffsetInfoType, IOffsetInfoType_Relation
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_FbSfb>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-        s += $"<RelationId>{RelationId}</RelationId>{Environment.NewLine}";
-        s += $"<Info4>{Info4}</Info4>{Environment.NewLine}";
-        s += $"<Info5>{Info5}</Info5>{Environment.NewLine}";
-        s += $"<Info6>{Info6}</Info6>{Environment.NewLine}";
-        s += $"<Info7>{Info7}</Info7>{Environment.NewLine}";
-        s += $"<RetainSectionOffset>{RetainSectionOffset}</RetainSectionOffset>{Environment.NewLine}";
-        s += $"<VolatileSectionOffset>{VolatileSectionOffset}</VolatileSectionOffset>{Environment.NewLine}";
-        s += $"</POffsetInfoType_FbSfb>{Environment.NewLine}";
-
-        return s;
+        return $"""
+            <POffsetInfoType_FbSfb>
+            <UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>
+            <UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>
+            <OptimizedAddress>{OptimizedAddress}</OptimizedAddress>
+            <NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>
+            <RelationId>{RelationId}</RelationId>
+            <Info4>{Info4}</Info4>
+            <Info5>{Info5}</Info5>
+            <Info6>{Info6}</Info6>
+            <Info7>{Info7}</Info7>
+            <RetainSectionOffset>{RetainSectionOffset}</RetainSectionOffset>
+            <VolatileSectionOffset>{VolatileSectionOffset}</VolatileSectionOffset>
+            </POffsetInfoType_FbSfb>
+            """;
     }
 
     public uint GetRelationId()
@@ -211,38 +212,35 @@ internal class POffsetInfoType_StructMDim : POffsetInfoType, IOffsetInfoType_Rel
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_StructMDim>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>{Environment.NewLine}";
-        s += $"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>{Environment.NewLine}";
-
+        var sb = new StringBuilder();
+        sb.AppendLine("<POffsetInfoType_StructMDim>");
+        sb.AppendLine($"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
+        sb.AppendLine($"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
+        sb.AppendLine($"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
+        sb.AppendLine($"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
+        sb.AppendLine($"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>");
+        sb.AppendLine($"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>");
         for (var d = 0; d < 6; d++)
         {
-            s += $"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>{Environment.NewLine}";
+            sb.AppendLine($"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
         }
         for (var d = 0; d < 6; d++)
         {
-            s += $"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>{Environment.NewLine}";
+            sb.AppendLine($"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
         }
 
-        s += $"<OptimizedStructSize>{OptimizedStructSize}</OptimizedStructSize>{Environment.NewLine}";
-        s += $"<NonoptimizedStructSize>{NonoptimizedStructSize}</NonoptimizedStructSize>{Environment.NewLine}";
+        sb.AppendLine($"<OptimizedStructSize>{OptimizedStructSize}</OptimizedStructSize>");
+        sb.AppendLine($"<NonoptimizedStructSize>{NonoptimizedStructSize}</NonoptimizedStructSize>");
 
-        s += $"<RelationId>{RelationId}</RelationId>{Environment.NewLine}";
-        s += $"<StructInfo4>{StructInfo4}</StructInfo4>{Environment.NewLine}";
-        s += $"<StructInfo5>{StructInfo5}</StructInfo5>{Environment.NewLine}";
-        s += $"<StructInfo6>{StructInfo6}</StructInfo6>{Environment.NewLine}";
-        s += $"<StructInfo7>{StructInfo7}</StructInfo7>{Environment.NewLine}";
+        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine($"<StructInfo4>{StructInfo4}</StructInfo4>");
+        sb.AppendLine($"<StructInfo5>{StructInfo5}</StructInfo5>");
+        sb.AppendLine($"<StructInfo6>{StructInfo6}</StructInfo6>");
+        sb.AppendLine($"<StructInfo7>{StructInfo7}</StructInfo7>");
 
-        s += $"</POffsetInfoType_StructMDim>{Environment.NewLine}";
+        sb.AppendLine($"</POffsetInfoType_StructMDim>");
 
-        return s;
+        return sb.ToString();
     }
 
     public uint GetRelationId()
@@ -318,30 +316,24 @@ internal class POffsetInfoType_Struct1Dim : POffsetInfoType, IOffsetInfoType_Rel
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_Struct1Dim>{Environment.NewLine}";
 
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>{Environment.NewLine}";
-        s += $"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>{Environment.NewLine}";
-
-        s += $"<OptimizedStructSize>{OptimizedStructSize}</OptimizedStructSize>{Environment.NewLine}";
-        s += $"<NonoptimizedStructSize>{NonoptimizedStructSize}</NonoptimizedStructSize>{Environment.NewLine}";
-
-        s += $"<RelationId>{RelationId}</RelationId>{Environment.NewLine}";
-        s += $"<StructInfo4>{StructInfo4}</StructInfo4>{Environment.NewLine}";
-        s += $"<StructInfo5>{StructInfo5}</StructInfo5>{Environment.NewLine}";
-        s += $"<StructInfo6>{StructInfo6}</StructInfo6>{Environment.NewLine}";
-        s += $"<StructInfo7>{StructInfo7}</StructInfo7>{Environment.NewLine}";
-
-        s += $"</POffsetInfoType_Struct1Dim>{Environment.NewLine}";
-
-        return s;
+        return $"""
+            <POffsetInfoType_Struct1Dim>
+            <UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>
+            <UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>
+            <OptimizedAddress>{OptimizedAddress}</OptimizedAddress>
+            <NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>
+            <ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>
+            <ArrayElementCount>{ArrayElementCount}</ArrayElementCount>
+            <OptimizedStructSize>{OptimizedStructSize}</OptimizedStructSize>
+            <NonoptimizedStructSize>{NonoptimizedStructSize}</NonoptimizedStructSize>
+            <RelationId>{RelationId}</RelationId>
+            <StructInfo4>{StructInfo4}</StructInfo4>
+            <StructInfo5>{StructInfo5}</StructInfo5>
+            <StructInfo6>{StructInfo6}</StructInfo6>
+            <StructInfo7>{StructInfo7}</StructInfo7>
+            </POffsetInfoType_Struct1Dim>
+            """;
     }
 
     public uint GetRelationId()
@@ -397,24 +389,19 @@ internal class POffsetInfoType_Struct : POffsetInfoType, IOffsetInfoType_Relatio
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_Struct>{Environment.NewLine}";
-
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"<RelationId>{RelationId}</RelationId>{Environment.NewLine}";
-        s += $"<StructInfo4>{StructInfo4}</StructInfo4>{Environment.NewLine}";
-        s += $"<StructInfo5>{StructInfo5}</StructInfo5>{Environment.NewLine}";
-        s += $"<StructInfo6>{StructInfo6}</StructInfo6>{Environment.NewLine}";
-        s += $"<StructInfo7>{StructInfo7}</StructInfo7>{Environment.NewLine}";
-
-        s += $"</POffsetInfoType_Struct>{Environment.NewLine}";
-
-        return s;
+        return $"""
+            <POffsetInfoType_Struct>
+            <UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>
+            <UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>
+            <OptimizedAddress>{OptimizedAddress}</OptimizedAddress>
+            <NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>
+            <RelationId>{RelationId}</RelationId>
+            <StructInfo4>{StructInfo4}</StructInfo4>
+            <StructInfo5>{StructInfo5}</StructInfo5>
+            <StructInfo6>{StructInfo6}</StructInfo6>
+            <StructInfo7>{StructInfo7}</StructInfo7>
+            </POffsetInfoType_Struct>
+            """;
     }
 
     public uint GetRelationId()
@@ -465,30 +452,25 @@ internal class POffsetInfoType_ArrayMDim : POffsetInfoType, IOffsetInfoType_MDim
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_ArrayMDim>{Environment.NewLine}";
-
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>{Environment.NewLine}";
-        s += $"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>{Environment.NewLine}";
-
+        var sb = new StringBuilder();
+        sb.AppendLine("<POffsetInfoType_ArrayMDim>");
+        sb.AppendLine($"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
+        sb.AppendLine($"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
+        sb.AppendLine($"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
+        sb.AppendLine($"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
+        sb.AppendLine($"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>");
+        sb.AppendLine($"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>");
         for (var d = 0; d < 6; d++)
         {
-            s += $"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>{Environment.NewLine}";
+            sb.AppendLine($"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
         }
         for (var d = 0; d < 6; d++)
         {
-            s += $"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>{Environment.NewLine}";
+            sb.AppendLine($"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
         }
 
-        s += $"</POffsetInfoType_ArrayMDim>{Environment.NewLine}";
-
-        return s;
+        sb.AppendLine("</POffsetInfoType_ArrayMDim>");
+        return sb.ToString();
     }
 
     public int GetArrayLowerBounds()
@@ -543,21 +525,16 @@ internal class POffsetInfoType_Array1Dim : POffsetInfoType, IOffsetInfoType_1Dim
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_Array1Dim>{Environment.NewLine}";
-
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"<ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>{Environment.NewLine}";
-        s += $"<ArrayElementCount>{ArrayElementCount}</ArrayElementCount>{Environment.NewLine}";
-
-        s += $"</POffsetInfoType_Array1Dim>{Environment.NewLine}";
-
-        return s;
+        return $"""
+            <POffsetInfoType_Array1Dim>
+            <UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>
+            <UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>
+            <OptimizedAddress>{OptimizedAddress}</OptimizedAddress>
+            <NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>
+            <ArrayLowerBounds>{ArrayLowerBounds}</ArrayLowerBounds>
+            <ArrayElementCount>{ArrayElementCount}</ArrayElementCount>
+            </POffsetInfoType_Array1Dim>
+            """;
     }
 
     public int GetArrayLowerBounds()
@@ -597,18 +574,14 @@ internal class POffsetInfoType_String : POffsetInfoType
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_String>{Environment.NewLine}";
-
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"</POffsetInfoType_String>{Environment.NewLine}";
-
-        return s;
+        return $"""
+            <POffsetInfoType_String>
+            <UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>
+            <UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>
+            <OptimizedAddress>{OptimizedAddress}</OptimizedAddress>
+            <NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>
+            </POffsetInfoType_String>
+            """;
     }
 }
 
@@ -644,15 +617,12 @@ internal class POffsetInfoType_Std : POffsetInfoType
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_Std>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"</POffsetInfoType_Std>{Environment.NewLine}";
-
-        return s;
+        return $"""
+            <POffsetInfoType_Std>
+            <OptimizedAddress>{OptimizedAddress}</OptimizedAddress>
+            <NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>
+            </POffsetInfoType_Std>
+            """;
     }
 }
 
@@ -716,39 +686,36 @@ internal class POffsetInfoType_FbArray : POffsetInfoType, IOffsetInfoType_Relati
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<POffsetInfoType_FbArray>{Environment.NewLine}";
+        var sb = new StringBuilder();
+        sb.AppendLine("<POffsetInfoType_FbArray>");
+        sb.AppendLine($"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>");
+        sb.AppendLine($"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>");
+        sb.AppendLine($"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>");
+        sb.AppendLine($"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>");
+        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine($"<Info4>{Info4}</Info4>");
+        sb.AppendLine($"<Info5>{Info5}</Info5>");
+        sb.AppendLine($"<Info6>{Info6}</Info6>");
+        sb.AppendLine($"<Info7>{Info7}</Info7>");
 
-        s += $"<UnspecifiedOffsetinfo1>{UnspecifiedOffsetinfo1}</UnspecifiedOffsetinfo1>{Environment.NewLine}";
-        s += $"<UnspecifiedOffsetinfo2>{UnspecifiedOffsetinfo2}</UnspecifiedOffsetinfo2>{Environment.NewLine}";
-
-        s += $"<OptimizedAddress>{OptimizedAddress}</OptimizedAddress>{Environment.NewLine}";
-        s += $"<NonoptimizedAddress>{NonoptimizedAddress}</NonoptimizedAddress>{Environment.NewLine}";
-
-        s += $"<RelationId>{RelationId}</RelationId>{Environment.NewLine}";
-        s += $"<Info4>{Info4}</Info4>{Environment.NewLine}";
-        s += $"<Info5>{Info5}</Info5>{Environment.NewLine}";
-        s += $"<Info6>{Info6}</Info6>{Environment.NewLine}";
-        s += $"<Info7>{Info7}</Info7>{Environment.NewLine}";
-
-        s += $"<RetainSectionOffset>{RetainSectionOffset}</RetainSectionOffset>{Environment.NewLine}";
-        s += $"<VolatileSectionOffset>{VolatileSectionOffset}</VolatileSectionOffset>{Environment.NewLine}";
-        s += $"<ClassicSectionSize>{ClassicSectionSize}</ClassicSectionSize>{Environment.NewLine}";
-        s += $"<RetainSectionSize>{RetainSectionSize}</RetainSectionSize>{Environment.NewLine}";
-        s += $"<VolatileSectionSize>{VolatileSectionSize}</VolatileSectionSize>{Environment.NewLine}";
+        sb.AppendLine($"<RetainSectionOffset>{RetainSectionOffset}</RetainSectionOffset>");
+        sb.AppendLine($"<VolatileSectionOffset>{VolatileSectionOffset}</VolatileSectionOffset>");
+        sb.AppendLine($"<ClassicSectionSize>{ClassicSectionSize}</ClassicSectionSize>");
+        sb.AppendLine($"<RetainSectionSize>{RetainSectionSize}</RetainSectionSize>");
+        sb.AppendLine($"<VolatileSectionSize>{VolatileSectionSize}</VolatileSectionSize>");
 
         for (var d = 0; d < 6; d++)
         {
-            s += $"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>{Environment.NewLine}";
+            sb.AppendLine($"<MdimArrayLowerBounds[{d}]>{MdimArrayLowerBounds[d]}</MdimArrayLowerBounds[{d}]>");
         }
         for (var d = 0; d < 6; d++)
         {
-            s += $"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>{Environment.NewLine}";
+            sb.AppendLine($"<MdimArrayElementCount[{d}]>{MdimArrayElementCount[d]}</MdimArrayElementCount[{d}]>");
         }
 
-        s += $"</POffsetInfoType_FbArray>{Environment.NewLine}";
+        sb.AppendLine($"</POffsetInfoType_FbArray>");
 
-        return s;
+        return sb.ToString();
     }
 
     public uint GetRelationId()

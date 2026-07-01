@@ -38,17 +38,17 @@ internal sealed class GetVarSubstreamedResponse(byte protocolVersion) : IS7pResp
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<GetVarSubstreamedResponse>{Environment.NewLine}";
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>{Environment.NewLine}";
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>{Environment.NewLine}";
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>{Environment.NewLine}";
-        s += $"<ResponseSet>{Environment.NewLine}";
-        s += $"<ReturnValue>{ReturnValue}</ReturnValue>{Environment.NewLine}";
-        s += $"</ResponseSet>{Environment.NewLine}";
-        s += $"<IntegrityId>{IntegrityId}</IntegrityId>{Environment.NewLine}";
-        s += $"</GetVarSubstreamedResponse>{Environment.NewLine}";
-        return s;
+        return $"""
+            <GetVarSubstreamedResponse>
+            <ProtocolVersion>{ProtocolVersion}</ProtocolVersion>
+            <SequenceNumber>{SequenceNumber}</SequenceNumber>
+            <TransportFlags>{TransportFlags}</TransportFlags>
+            <ResponseSet>
+            <ReturnValue>{ReturnValue}</ReturnValue>
+            </ResponseSet>
+            <IntegrityId>{IntegrityId}</IntegrityId>
+            </GetVarSubstreamedResponse>
+            """;
     }
 
     public static GetVarSubstreamedResponse? DeserializeFromPdu(Stream pdu)

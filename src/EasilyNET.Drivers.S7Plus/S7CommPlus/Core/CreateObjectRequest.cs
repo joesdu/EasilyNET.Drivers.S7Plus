@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class CreateObjectRequest(byte protocolVersion, ushort seqNum, bool withIntegrityId) : IS7pRequest
@@ -72,18 +74,18 @@ internal sealed class CreateObjectRequest(byte protocolVersion, ushort seqNum, b
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<CreateObjectRequest>{Environment.NewLine}";
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>{Environment.NewLine}";
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>{Environment.NewLine}";
-        s += $"<SessionId>{SessionId}</SessionId>{Environment.NewLine}";
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>{Environment.NewLine}";
-        s += $"<RequestSet>{Environment.NewLine}";
-        s += $"<RequestId>{RequestId}</RequestId>{Environment.NewLine}";
-        s += $"<RequestValue>{RequestValue}</RequestValue>{Environment.NewLine}";
-        s += $"<RequestObject>{RequestObject}</RequestObject>{Environment.NewLine}";
-        s += $"</RequestSet>{Environment.NewLine}";
-        s += $"</CreateObjectRequest>{Environment.NewLine}";
-        return s;
+        var sb = new StringBuilder();
+        sb.AppendLine("<CreateObjectRequest>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine($"<SessionId>{SessionId}</SessionId>");
+        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine("<RequestSet>");
+        sb.AppendLine($"<RequestId>{RequestId}</RequestId>");
+        sb.AppendLine($"<RequestValue>{RequestValue}</RequestValue>");
+        sb.AppendLine($"<RequestObject>{RequestObject}</RequestObject>");
+        sb.AppendLine("</RequestSet>");
+        sb.AppendLine("</CreateObjectRequest>");
+        return sb.ToString();
     }
 }

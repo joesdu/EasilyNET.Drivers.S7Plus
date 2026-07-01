@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class Notification(byte protocolVersion)
@@ -141,49 +143,49 @@ internal sealed class Notification(byte protocolVersion)
 
     public override string ToString()
     {
-        var s = "";
-        s += "<Notification>" + Environment.NewLine;
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>" + Environment.NewLine;
-        s += $"<SubscriptionObjectId>{SubscriptionObjectId}</SubscriptionObjectId>" + Environment.NewLine;
-        s += $"<Unknown2>{Unknown2}</Unknown2>" + Environment.NewLine;
-        s += $"<Unknown3>{Unknown3}</Unknown3>" + Environment.NewLine;
-        s += $"<Unknown4>{Unknown4}</Unknown4>" + Environment.NewLine;
-        s += $"<NotificationCreditTick>{NotificationCreditTick}</NotificationCreditTick>" + Environment.NewLine;
-        s += $"<NotificationSequenceNumber>{NotificationSequenceNumber}</NotificationSequenceNumber>" + Environment.NewLine;
-        s += $"<SubscriptionChangeCounter>{SubscriptionChangeCounter}</SubscriptionChangeCounter>" + Environment.NewLine;
-        s += $"<Add1Timestamp>{$"{Add1Timestamp}.{Add1Timestamp.Millisecond:D03} UTC"}</Add1Timestamp>" + Environment.NewLine;
-        s += $"<Add1SubscriptionChangeCounter>{Add1SubscriptionChangeCounter}</Add1SubscriptionChangeCounter>" + Environment.NewLine;
-        s += "<ValueList>" + Environment.NewLine;
+        var sb = new StringBuilder();
+        sb.AppendLine("<Notification>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<SubscriptionObjectId>{SubscriptionObjectId}</SubscriptionObjectId>");
+        sb.AppendLine($"<Unknown2>{Unknown2}</Unknown2>");
+        sb.AppendLine($"<Unknown3>{Unknown3}</Unknown3>");
+        sb.AppendLine($"<Unknown4>{Unknown4}</Unknown4>");
+        sb.AppendLine($"<NotificationCreditTick>{NotificationCreditTick}</NotificationCreditTick>");
+        sb.AppendLine($"<NotificationSequenceNumber>{NotificationSequenceNumber}</NotificationSequenceNumber>");
+        sb.AppendLine($"<SubscriptionChangeCounter>{SubscriptionChangeCounter}</SubscriptionChangeCounter>");
+        sb.AppendLine($"<Add1Timestamp>{$"{Add1Timestamp}.{Add1Timestamp.Millisecond:D03} UTC"}</Add1Timestamp>");
+        sb.AppendLine($"<Add1SubscriptionChangeCounter>{Add1SubscriptionChangeCounter}</Add1SubscriptionChangeCounter>");
+        sb.AppendLine("<ValueList>");
         foreach (var value in Values)
         {
-            s += "<Value>" + Environment.NewLine;
-            s += $"<ItemRefId>{value.Key}</ItemRefId>" + Environment.NewLine;
-            s += value.Value.ToString();
-            s += "</Value>" + Environment.NewLine;
+            sb.AppendLine("<Value>");
+            sb.AppendLine($"<ItemRefId>{value.Key}</ItemRefId>");
+            sb.AppendLine(value.Value.ToString());
+            sb.AppendLine("</Value>");
         }
-        s += "</ValueList>" + Environment.NewLine;
+        sb.AppendLine("</ValueList>");
 
-        s += "<ReturnValueList>" + Environment.NewLine;
+        sb.AppendLine("<ReturnValueList>");
         foreach (var errval in ReturnValues)
         {
-            s += "<ReturnValue>" + Environment.NewLine;
-            s += $"<ItemRefId>{errval.Key}</ItemRefId>" + Environment.NewLine;
-            s += $"<ReturnValue>{errval.Value}</ReturnValue>" + Environment.NewLine;
-            s += "</ReturnValue>" + Environment.NewLine;
+            sb.AppendLine("<ReturnValue>");
+            sb.AppendLine($"<ItemRefId>{errval.Key}</ItemRefId>");
+            sb.AppendLine($"<ReturnValue>{errval.Value}</ReturnValue>");
+            sb.AppendLine("</ReturnValue>");
         }
-        s += "</ReturnValueList>" + Environment.NewLine;
+        sb.AppendLine("</ReturnValueList>");
         // For alarm object(s)
-        s += $"<P2SubscriptionObjectId>{P2SubscriptionObjectId}</P2SubscriptionObjectId>" + Environment.NewLine;
-        s += $"<P2Unknown1>{P2Unknown1}</P2Unknown1>" + Environment.NewLine;
-        s += $"<P2ReturnValue>{P2ReturnValue}</P2ReturnValue>" + Environment.NewLine;
-        s += "<P2Objects>" + Environment.NewLine;
+        sb.AppendLine($"<P2SubscriptionObjectId>{P2SubscriptionObjectId}</P2SubscriptionObjectId>");
+        sb.AppendLine($"<P2Unknown1>{P2Unknown1}</P2Unknown1>");
+        sb.AppendLine($"<P2ReturnValue>{P2ReturnValue}</P2ReturnValue>");
+        sb.AppendLine("<P2Objects>");
         foreach (var p2o in P2Objects)
         {
-            s += p2o.ToString();
+            sb.Append(p2o.ToString());
         }
-        s += "</P2Objects>" + Environment.NewLine;
-        s += "</Notification>" + Environment.NewLine;
-        return s;
+        sb.AppendLine("</P2Objects>");
+        sb.AppendLine("</Notification>");
+        return sb.ToString();
     }
 
     public static Notification? DeserializeFromPdu(Stream pdu)

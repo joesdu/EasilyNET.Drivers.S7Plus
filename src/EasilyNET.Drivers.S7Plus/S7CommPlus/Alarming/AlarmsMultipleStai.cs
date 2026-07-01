@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Alarming;
 
@@ -52,24 +53,24 @@ internal sealed class AlarmsMultipleStai
 
     public override string ToString()
     {
-        var s = "";
-        s += "<AlarmsMultipleStai>" + Environment.NewLine;
-        s += $"<Alid>{Alid}</Alid>{Environment.NewLine}";
-        s += $"<AlarmDomain>{AlarmDomain}</AlarmDomain>{Environment.NewLine}";
-        s += $"<MessageType>{MessageType}</MessageType>{Environment.NewLine}";
-        s += $"<AlarmEnabled>{AlarmEnabled}</AlarmEnabled>{Environment.NewLine}";
-        s += $"<HmiInfoLength>{HmiInfoLength}</HmiInfoLength>{Environment.NewLine}";
-        s += $"<HmiInfo>{Environment.NewLine}{HmiInfo}{Environment.NewLine}</HmiInfo>{Environment.NewLine}";
-        s += $"<LidCount>{LidCount}</LidCount>{Environment.NewLine}";
+        var sb = new StringBuilder();
+        sb.AppendLine("<AlarmsMultipleStai>");
+        sb.AppendLine($"<Alid>{Alid}</Alid>");
+        sb.AppendLine($"<AlarmDomain>{AlarmDomain}</AlarmDomain>");
+        sb.AppendLine($"<MessageType>{MessageType}</MessageType>");
+        sb.AppendLine($"<AlarmEnabled>{AlarmEnabled}</AlarmEnabled>");
+        sb.AppendLine($"<HmiInfoLength>{HmiInfoLength}</HmiInfoLength>");
+        sb.AppendLine($"<HmiInfo>{Environment.NewLine}{HmiInfo}{Environment.NewLine}</HmiInfo>");
+        sb.AppendLine($"<LidCount>{LidCount}</LidCount>");
         if (Lids != null)
         {
             foreach (var li in Lids)
             {
-                s += $"<Lid>{li}</Lid>{Environment.NewLine}";
+                sb.AppendLine($"<Lid>{li}</Lid>");
             }
         }
-        s += "</AlarmsMultipleStai>" + Environment.NewLine;
-        return s;
+        sb.AppendLine("</AlarmsMultipleStai>");
+        return sb.ToString();
     }
 
     public int Deserialize(Stream buffer)

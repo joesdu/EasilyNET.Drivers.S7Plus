@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 /// <summary>
@@ -88,30 +90,30 @@ internal sealed class SystemEvent(byte protocolVersion)
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<SystemEvent>{Environment.NewLine}";
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>{Environment.NewLine}";
-        s += $"<Reserved1>{Reserved1}</Reserved1>{Environment.NewLine}";
-        s += $"<ConfirmedBytes>{ConfirmedBytes}</ConfirmedBytes>{Environment.NewLine}";
-        s += $"<Reserved2>{Reserved2}</Reserved2>{Environment.NewLine}";
-        s += $"<Reserved3>{Reserved3}</Reserved3>{Environment.NewLine}";
+        var sb = new StringBuilder();
+        sb.AppendLine("<SystemEvent>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<Reserved1>{Reserved1}</Reserved1>");
+        sb.AppendLine($"<ConfirmedBytes>{ConfirmedBytes}</ConfirmedBytes>");
+        sb.AppendLine($"<Reserved2>{Reserved2}</Reserved2>");
+        sb.AppendLine($"<Reserved3>{Reserved3}</Reserved3>");
         if (IsData)
         {
-            s += $"<Data>{Data}</Data>{Environment.NewLine}";
-            s += $"<Message></Message>{Environment.NewLine}";
+            sb.AppendLine($"<Data>{Data}</Data>");
+            sb.AppendLine($"<Message></Message>");
         }
         else if (IsMessage)
         {
-            s += $"<Data></Data>{Environment.NewLine}";
-            s += $"<Message>{Message}</Message>{Environment.NewLine}";
+            sb.AppendLine($"<Data></Data>");
+            sb.AppendLine($"<Message>{Message}</Message>");
         }
         else
         {
-            s += $"<Data></Data>{Environment.NewLine}";
-            s += $"<Message></Message>{Environment.NewLine}";
+            sb.AppendLine($"<Data></Data>");
+            sb.AppendLine($"<Message></Message>");
         }
-        s += "</SystemEvent>" + Environment.NewLine;
-        return s;
+        sb.AppendLine("</SystemEvent>");
+        return sb.ToString();
     }
 
     public static SystemEvent? DeserializeFromPdu(Stream pdu)

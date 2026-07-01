@@ -1887,13 +1887,14 @@ internal sealed class PlcTagStringArray(string name, ItemAddress address, uint s
 
     public override string ToString()
     {
-        var s = $"""<Value type ="StringArray" size="{Value.Length}">""";
+        var sb = new StringBuilder();
+        sb.Append($"""<Value type ="StringArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
-            s += $"<Value>{Value[i]}</Value>";
+            sb.Append($"<Value>{Value[i]}</Value>");
         }
-        s += "</Value>";
-        return ResultString(this, s);
+        sb.Append("</Value>");
+        return ResultString(this, sb.ToString());
     }
 }
 #endregion

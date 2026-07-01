@@ -178,7 +178,7 @@ internal sealed class ValueNull : PValue
 
     public override string ToString()
     {
-        return "<Value type=\"Null\"></Value>";
+        return """<Value type="Null"></Value>""";
     }
 
     public static ValueNull Deserialize(Stream buffer, byte flags)
@@ -217,7 +217,7 @@ internal sealed class ValueBool : PValue
 
     public override string ToString()
     {
-        return "<Value type=\"Bool\">" + Value.ToString() + "</Value>";
+        return $"""<Value type="Bool">{Value}</Value>""";
     }
 
     public static ValueBool Deserialize(Stream buffer, byte flags)
@@ -272,7 +272,7 @@ internal sealed class ValueBoolArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"BoolArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="BoolArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -333,7 +333,7 @@ internal sealed class ValueUSInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"USInt\">{Value}</Value>";
+        return $"""<Value type="USInt">{Value}</Value>""";
     }
 
     public static ValueUSInt Deserialize(Stream buffer, byte flags)
@@ -381,7 +381,7 @@ internal sealed class ValueUSIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"USIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="USIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -441,7 +441,7 @@ internal sealed class ValueUInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"UInt\">{Value}</Value>";
+        return $"""<Value type="UInt">{Value}</Value>""";
     }
 
     public static ValueUInt Deserialize(Stream buffer, byte flags)
@@ -489,7 +489,7 @@ internal sealed class ValueUIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"UIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="UIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -549,7 +549,7 @@ internal sealed class ValueUDInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"UDInt\">{Value}</Value>";
+        return $"""<Value type="UDInt">{Value}</Value>""";
     }
 
     public static ValueUDInt Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -605,7 +605,7 @@ internal sealed class ValueUDIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"UDIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="UDIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -682,10 +682,10 @@ internal sealed class ValueUDIntSparseArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder("<Value type =\"UDIntSparseArray\">");
+        var s = new StringBuilder("""<Value type ="UDIntSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"<Value key=\"{v.Key}\">{v.Value}</Value>");
+            s.Append($"""<Value key="{v.Key}">{v.Value}</Value>""");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -750,7 +750,7 @@ internal sealed class ValueULInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"ULInt\">{Value}</Value>";
+        return $"""<Value type="ULInt">{Value}</Value>""";
     }
 
     public static ValueULInt Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -806,7 +806,7 @@ internal sealed class ValueULIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"ULIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="ULIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -871,7 +871,7 @@ internal sealed class ValueSInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"SInt\">{Value}</Value>";
+        return $"""<Value type="SInt">{Value}</Value>""";
     }
 
     public static ValueSInt Deserialize(Stream buffer, byte flags)
@@ -920,7 +920,7 @@ internal sealed class ValueSIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"SIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="SIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -981,7 +981,7 @@ internal sealed class ValueInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"Int\">{Value}</Value>";
+        return $"""<Value type="Int">{Value}</Value>""";
     }
 
     public static ValueInt Deserialize(Stream buffer, byte flags)
@@ -1029,7 +1029,7 @@ internal sealed class ValueIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"IntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="IntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1089,7 +1089,7 @@ internal sealed class ValueDInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"DInt\">{Value}</Value>";
+        return $"""<Value type="DInt">{Value}</Value>""";
     }
 
     public static ValueDInt Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1145,7 +1145,7 @@ internal sealed class ValueDIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"DIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="DIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1218,10 +1218,10 @@ internal sealed class ValueDIntSparseArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder("<Value type =\"DIntSparseArray\">");
+        var s = new StringBuilder($"""<Value type ="DIntSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"<Value key=\"{v.Key}\">{v.Value}</Value>");
+            s.Append($"""<Value key="{v.Key}">{v.Value}</Value>""");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -1286,7 +1286,7 @@ internal sealed class ValueLInt : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"LInt\">{Value}</Value>";
+        return $"""<Value type="LInt">{Value}</Value>""";
     }
 
     public static ValueLInt Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -1342,7 +1342,7 @@ internal sealed class ValueLIntArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"LIntArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="LIntArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1407,7 +1407,7 @@ internal sealed class ValueByte : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"Byte\">{Value}</Value>";
+        return $"""<Value type="Byte">{Value}</Value>""";
     }
 
     public static ValueByte Deserialize(Stream buffer, byte flags)
@@ -1455,7 +1455,7 @@ internal sealed class ValueByteArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"ByteArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="ByteArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1515,7 +1515,7 @@ internal sealed class ValueWord : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"Word\">{Value}</Value>";
+        return $"""<Value type="Word">{Value}</Value>""";
     }
 
     public static ValueWord Deserialize(Stream buffer, byte flags)
@@ -1563,7 +1563,7 @@ internal sealed class ValueWordArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"WordArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="WordArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1623,7 +1623,7 @@ internal sealed class ValueDWord : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"DWord\">{Value}</Value>";
+        return $"""<Value type="DWord">{Value}</Value>""";
     }
 
     public static ValueDWord Deserialize(Stream buffer, byte flags)
@@ -1671,7 +1671,7 @@ internal sealed class ValueDWordArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"DWordArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="DWordArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1731,7 +1731,7 @@ internal sealed class ValueLWord : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"LWord\">{Value}</Value>";
+        return $"""<Value type="LWord">{Value}</Value>""";
     }
 
     public static ValueLWord Deserialize(Stream buffer, byte flags)
@@ -1779,7 +1779,7 @@ internal sealed class ValueLWordArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"LWordArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="LWordArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1839,7 +1839,7 @@ internal sealed class ValueReal : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"Real\">{Value}</Value>";
+        return $"""<Value type="Real">{Value}</Value>""";
     }
 
     public static ValueReal Deserialize(Stream buffer, byte flags)
@@ -1887,7 +1887,7 @@ internal sealed class ValueRealArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"RealArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="RealArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -1947,7 +1947,7 @@ internal sealed class ValueLReal : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"LReal\">{Value}</Value>";
+        return $"""<Value type="LReal">{Value}</Value>""";
     }
 
     public static ValueLReal Deserialize(Stream buffer, byte flags)
@@ -1995,7 +1995,7 @@ internal sealed class ValueLRealArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"LRealArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type ="LRealArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -2088,7 +2088,7 @@ internal sealed class ValueTimestamp : PValue
     public override string ToString()
     {
         var str = ToString(Value);
-        return $"<Value type=\"Timestamp\">{str}</Value>";
+        return $"""<Value type="Timestamp">{str}</Value>""";
     }
 
     public static ValueTimestamp Deserialize(Stream buffer, byte flags)
@@ -2132,7 +2132,7 @@ internal sealed class ValueTimestampArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"TimestampArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type="TimestampArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{ValueTimestamp.ToString(Value[i])}</Value>");
@@ -2238,7 +2238,7 @@ internal sealed class ValueTimespan : PValue
     public override string ToString()
     {
         var str = ToString(Value);
-        return $"<Value type=\"Timespan\">{str}</Value>";
+        return $"""<Value type="Timespan">{str}</Value>""";
     }
 
     public static ValueTimespan Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2294,7 +2294,7 @@ internal sealed class ValueTimespanArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"ValueTimespanArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type="ValueTimespanArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{ValueTimespan.ToString(Value[i])}</Value>");
@@ -2361,7 +2361,7 @@ internal sealed class ValueRID : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"RID\">{Value}</Value>";
+        return $"""<Value type="RID">{Value}</Value>""";
     }
 
     public static ValueRID Deserialize(Stream buffer, byte flags)
@@ -2409,7 +2409,7 @@ internal sealed class ValueRIDArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"RIDArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type="RIDArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -2469,7 +2469,7 @@ internal sealed class ValueAID : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"AID\">{Value}</Value>";
+        return $"""<Value type="AID">{Value}</Value>""";
     }
 
     public static ValueAID Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2525,7 +2525,7 @@ internal sealed class ValueAIDArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"AIDArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type="AIDArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -2603,8 +2603,8 @@ internal sealed class ValueBlob : PValue
     public override string ToString()
     {
         var s = new StringBuilder(!HasBlobType
-            ? $"<Value type=\"Blob\" BlobRootId=\"{BlobRootId}\">"
-            : $"<Value type=\"Blob\" BlobRootId=\"{BlobRootId}\" BlobType=\"{BlobType}\">");
+            ? $"""<Value type="Blob" BlobRootId="{BlobRootId}">"""
+            : $"""<Value type="Blob" BlobRootId="{BlobRootId}" BlobType="{BlobType}">""");
         if (Value != null)
         {
             s.Append(BitConverter.ToString(Value));
@@ -2714,7 +2714,7 @@ internal sealed class ValueBlobArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"ValueBlobArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type="ValueBlobArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -2789,10 +2789,10 @@ internal sealed class ValueBlobSparseArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder("<Value type=\"BlobSparseArray\">");
+        var s = new StringBuilder($"""<Value type="BlobSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"<Value key=\"{v.Key}\" BlobRootId=\"{v.Value.blobRootId}\">");
+            s.Append($"""<Value key="{v.Key}" BlobRootId="{v.Value.blobRootId}">""");
             if (Value != null && v.Value.value != null)
             {
                 s.Append(BitConverter.ToString(v.Value.value));
@@ -2875,7 +2875,7 @@ internal sealed class ValueWString : PValue
 
     public override string ToString()
     {
-        return $"<Value type=\"WString\">{Value}</Value>";
+        return $"""<Value type="WString">{Value}</Value>""";
     }
 
     public static ValueWString Deserialize(Stream buffer, byte flags, bool disableVlq)
@@ -2929,7 +2929,7 @@ internal sealed class ValueWStringArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder($"<Value type =\"WStringArray\" size=\"{Value.Length}\">");
+        var s = new StringBuilder($"""<Value type="WStringArray" size="{Value.Length}">""");
         for (var i = 0; i < Value.Length; i++)
         {
             s.Append($"<Value>{Value[i]}</Value>");
@@ -3006,10 +3006,10 @@ internal sealed class ValueWStringSparseArray : PValue
 
     public override string ToString()
     {
-        var s = new StringBuilder("<Value type =\"WStringSparseArray\">");
+        var s = new StringBuilder($"""<Value type="WStringSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"<Value key=\"{v.Key}\">{v.Value}</Value>");
+            s.Append($"""<Value key="{v.Key}">{v.Value}</Value>""");
         }
         s.Append("</Value>");
         return s.ToString();
@@ -3146,7 +3146,7 @@ internal sealed class ValueStruct : PValue
     public override string ToString()
     {
         var s = new StringBuilder("");
-        s.AppendLine("<Value type =\"Struct\">");
+        s.AppendLine($"""<Value type="Struct">""");
         s.AppendLine($"<ID>{Value}</ID>");
         if (Value is (> 0x90000000 and < 0x9fffffff) or (> 0x02000000 and < 0x02ffffff))
         {

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using System.Globalization;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
@@ -112,38 +113,38 @@ internal sealed class PObject(uint RID, uint CLSID, uint AID) : IS7pSerialize
 
     public override string ToString()
     {
-        var s = "";
-        s += "<Object>" + Environment.NewLine;
-        s += $"<RelationId>{RelationId}</RelationId>" + Environment.NewLine;
-        s += $"<ClassId>{ClassId}</ClassId>" + Environment.NewLine;
-        s += $"<AttributeId>{AttributeId}</AttributeId>" + Environment.NewLine;
+        var sb = new StringBuilder();
+        sb.AppendLine("<Object>");
+        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine($"<ClassId>{ClassId}</ClassId>");
+        sb.AppendLine($"<AttributeId>{AttributeId}</AttributeId>");
         foreach (var a in Attributes)
         {
-            s += "<Attribute>" + Environment.NewLine;
-            s += $"<ID>{a.Key}</ID>" + Environment.NewLine;
-            s += a.Value.ToString();
-            s += "</Attribute>" + Environment.NewLine;
+            sb.AppendLine("<Attribute>");
+            sb.AppendLine($"<ID>{a.Key}</ID>");
+            sb.AppendLine(a.Value.ToString());
+            sb.AppendLine("</Attribute>");
         }
         if (VartypeList != null)
         {
-            s += VartypeList.ToString();
+            sb.Append(VartypeList.ToString());
         }
         if (VarnameList != null)
         {
-            s += VarnameList.ToString();
+            sb.Append(VarnameList.ToString());
         }
         foreach (var o in Objects)
         {
-            s += o.Value.ToString();
+            sb.Append(o.Value.ToString());
         }
         foreach (var rel in Relations)
         {
-            s += "<Relation>" + Environment.NewLine;
-            s += $"<ID>{rel.Key}</ID>" + Environment.NewLine;
-            s += rel.Value.ToString(CultureInfo.InvariantCulture);
-            s += "</Relation>" + Environment.NewLine;
+            sb.AppendLine("<Relation>");
+            sb.AppendLine($"<ID>{rel.Key}</ID>");
+            sb.AppendLine(rel.Value.ToString(CultureInfo.InvariantCulture));
+            sb.AppendLine("</Relation>");
         }
-        s += "</Object>" + Environment.NewLine;
-        return s;
+        sb.AppendLine("</Object>");
+        return sb.ToString();
     }
 }

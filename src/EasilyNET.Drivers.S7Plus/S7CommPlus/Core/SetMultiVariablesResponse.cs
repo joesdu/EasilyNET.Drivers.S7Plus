@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class SetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
@@ -39,26 +41,26 @@ internal sealed class SetMultiVariablesResponse(byte protocolVersion) : IS7pResp
 
     public override string ToString()
     {
-        var s = "";
-        s += "<SetMultiVariablesResponse>" + Environment.NewLine;
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>" + Environment.NewLine;
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>" + Environment.NewLine;
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>" + Environment.NewLine;
-        s += "<ResponseSet>" + Environment.NewLine;
-        s += $"<ReturnValue>{ReturnValue}</ReturnValue>" + Environment.NewLine;
-        s += "<ErrorValueList>" + Environment.NewLine;
+        var sb = new StringBuilder();
+        sb.AppendLine("<SetMultiVariablesResponse>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine("<ResponseSet>");
+        sb.AppendLine($"<ReturnValue>{ReturnValue}</ReturnValue>");
+        sb.AppendLine("<ErrorValueList>");
         foreach (var errval in ErrorValues)
         {
-            s += "<ErrorValue>" + Environment.NewLine;
-            s += $"<ItemNr>{errval.Key}</ItemNr>" + Environment.NewLine;
-            s += $"<ReturnValue>{errval.Value}</ReturnValue>" + Environment.NewLine;
-            s += "</ErrorValue>" + Environment.NewLine;
+            sb.AppendLine("<ErrorValue>");
+            sb.AppendLine($"<ItemNr>{errval.Key}</ItemNr>");
+            sb.AppendLine($"<ReturnValue>{errval.Value}</ReturnValue>");
+            sb.AppendLine("</ErrorValue>");
         }
-        s += "</ErrorValueList>" + Environment.NewLine;
-        s += "</ResponseSet>" + Environment.NewLine;
-        s += $"<IntegrityId>{IntegrityId}</IntegrityId>" + Environment.NewLine;
-        s += "</SetMultiVariablesResponse>" + Environment.NewLine;
-        return s;
+        sb.AppendLine("</ErrorValueList>");
+        sb.AppendLine("</ResponseSet>");
+        sb.AppendLine($"<IntegrityId>{IntegrityId}</IntegrityId>");
+        sb.AppendLine("</SetMultiVariablesResponse>");
+        return sb.ToString();
     }
 
     public static SetMultiVariablesResponse? DeserializeFromPdu(Stream pdu)

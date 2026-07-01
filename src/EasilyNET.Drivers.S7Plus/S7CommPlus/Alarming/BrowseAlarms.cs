@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Alarming;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Net;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus;
 
@@ -420,27 +421,31 @@ internal sealed class AlarmData(uint relationid)
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<AlarmData>{Environment.NewLine}";
-        s += $"<CpuAlarmId>{CpuAlarmId}</CpuAlarmId>{Environment.NewLine}";
-        s += $"<RelationId>{RelationId}</RelationId>{Environment.NewLine}";
-        s += $"<MultipleStai>{Environment.NewLine}{MultipleStai}{Environment.NewLine}</MultipleStai>{Environment.NewLine}";
-        s += $"<AlText>{Environment.NewLine}";
-        s += $"<Infotext>{AlText.Infotext}</Infotext>{Environment.NewLine}";
-        s += $"<AlarmText>{AlText.AlarmText}</AlarmText>{Environment.NewLine}";
-        s += $"<AdditionalText1>{AlText.AdditionalText1}</AdditionalText1>{Environment.NewLine}";
-        s += $"<AdditionalText2>{AlText.AdditionalText2}</AdditionalText2>{Environment.NewLine}";
-        s += $"<AdditionalText3>{AlText.AdditionalText3}</AdditionalText3>{Environment.NewLine}";
-        s += $"<AdditionalText4>{AlText.AdditionalText4}</AdditionalText4>{Environment.NewLine}";
-        s += $"<AdditionalText5>{AlText.AdditionalText5}</AdditionalText5>{Environment.NewLine}";
-        s += $"<AdditionalText6>{AlText.AdditionalText6}</AdditionalText6>{Environment.NewLine}";
-        s += $"<AdditionalText7>{AlText.AdditionalText7}</AdditionalText7>{Environment.NewLine}";
-        s += $"<AdditionalText8>{AlText.AdditionalText8}</AdditionalText8>{Environment.NewLine}";
-        s += $"<AdditionalText9>{AlText.AdditionalText9}</AdditionalText9>{Environment.NewLine}";
-        s += $"<UnknownValue1>{AlText.UnknownValue1}</UnknownValue1>{Environment.NewLine}";
-        s += $"<UnknownValue2>{AlText.UnknownValue2}</UnknownValue2>{Environment.NewLine}";
-        s += $"</AlText>{Environment.NewLine}";
-        s += $"</AlarmData>{Environment.NewLine}";
-        return s;
+        var sb = new StringBuilder();
+        sb.AppendLine("<AlarmData>");
+        sb.AppendLine($"<CpuAlarmId>{CpuAlarmId}</CpuAlarmId>");
+        sb.AppendLine($"<RelationId>{RelationId}</RelationId>");
+        sb.AppendLine($"""
+            <MultipleStai>
+            {MultipleStai}
+            </MultipleStai>
+            """);
+        sb.AppendLine("<AlText>");
+        sb.AppendLine($"<Infotext>{AlText.Infotext}</Infotext>");
+        sb.AppendLine($"<AlarmText>{AlText.AlarmText}</AlarmText>");
+        sb.AppendLine($"<AdditionalText1>{AlText.AdditionalText1}</AdditionalText1>");
+        sb.AppendLine($"<AdditionalText2>{AlText.AdditionalText2}</AdditionalText2>");
+        sb.AppendLine($"<AdditionalText3>{AlText.AdditionalText3}</AdditionalText3>");
+        sb.AppendLine($"<AdditionalText4>{AlText.AdditionalText4}</AdditionalText4>");
+        sb.AppendLine($"<AdditionalText5>{AlText.AdditionalText5}</AdditionalText5>");
+        sb.AppendLine($"<AdditionalText6>{AlText.AdditionalText6}</AdditionalText6>");
+        sb.AppendLine($"<AdditionalText7>{AlText.AdditionalText7}</AdditionalText7>");
+        sb.AppendLine($"<AdditionalText8>{AlText.AdditionalText8}</AdditionalText8>");
+        sb.AppendLine($"<AdditionalText9>{AlText.AdditionalText9}</AdditionalText9>");
+        sb.AppendLine($"<UnknownValue1>{AlText.UnknownValue1}</UnknownValue1>");
+        sb.AppendLine($"<UnknownValue2>{AlText.UnknownValue2}</UnknownValue2>");
+        sb.AppendLine("</AlText>");
+        sb.AppendLine("</AlarmData>");
+        return sb.ToString();
     }
 }

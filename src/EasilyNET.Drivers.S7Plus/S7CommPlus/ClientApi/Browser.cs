@@ -25,7 +25,7 @@ internal sealed class Browser
         m_objs = objs;
     }
 
-    public void AddBlockNode(eNodeType nodetype, string name, uint accessid, uint ti_rel_id)
+    public void AddBlockNode(ENodeType nodetype, string name, uint accessid, uint ti_rel_id)
     {
         var db = new Node
         {
@@ -56,21 +56,21 @@ internal sealed class Browser
     {
         switch (node.NodeType)
         {
-            case eNodeType.Root:
+            case ENodeType.Root:
                 names += node.Name;
                 accessIds += $"{node.AccessId:X}";
                 break;
-            case eNodeType.Array:
+            case ENodeType.Array:
                 names += node.Name;
                 accessIds += "." + $"{node.AccessId:X}";
                 break;
-            case eNodeType.StructArray:
+            case ENodeType.StructArray:
                 names += node.Name;
                 // TODO: Special: Between an array-index and the access-id is an additional 1. It's not known if it's a fixed or variable value.
                 accessIds += "." + $"{node.AccessId:X}" + ".1";
                 break;
-            case eNodeType.Undefined:
-            case eNodeType.Var:
+            case ENodeType.Undefined:
+            case ENodeType.Var:
             default:
                 names += "." + node.Name;
                 accessIds += "." + $"{node.AccessId:X}";
@@ -89,7 +89,7 @@ internal sealed class Browser
                     Softdatatype = node.Softdatatype,
                 };
                 // If an Array element of basic datatype, the Vte is here from the parent array base element and offsets not valid here.
-                if (node.NodeType == eNodeType.Array)
+                if (node.NodeType == ENodeType.Array)
                 {
                     info.OptAddress = OptOffset;
                     info.NonOptAddress = NonOptOffset;
@@ -133,18 +133,18 @@ internal sealed class Browser
             {
                 switch (node.NodeType)
                 {
-                    case eNodeType.Array:
+                    case ENodeType.Array:
                         // This is an array element of basic datatype. Offset comes from fixed size multiplied by array index.
                         OptOffset = node.Vte.OffsetInfoType!.OptimizedAddress;
                         NonOptOffset = node.Vte.OffsetInfoType.NonoptimizedAddress;
                         break;
-                    case eNodeType.StructArray:
+                    case ENodeType.StructArray:
                         OptOffset += node.ArrayAdrOffsetOpt;
                         NonOptOffset += node.ArrayAdrOffsetNonOpt;
                         break;
-                    case eNodeType.Undefined:
-                    case eNodeType.Root:
-                    case eNodeType.Var:
+                    case ENodeType.Undefined:
+                    case ENodeType.Root:
+                    case ENodeType.Var:
                     default:
                         OptOffset += node.Vte.OffsetInfoType!.OptimizedAddress;
                         NonOptOffset += node.Vte.OffsetInfoType.NonoptimizedAddress;
@@ -153,7 +153,7 @@ internal sealed class Browser
             }
             foreach (var sub in node.Childs)
             {
-                if (sub.NodeType == eNodeType.Array)
+                if (sub.NodeType == ENodeType.Array)
                 {
                     AddFlatSubnodes(sub, names, accessIds, OptOffset + sub.ArrayAdrOffsetOpt, NonOptOffset + sub.ArrayAdrOffsetNonOpt);
                 }
@@ -226,7 +226,7 @@ internal sealed class Browser
                         {
                             var arraynode = new Node
                             {
-                                NodeType = eNodeType.StructArray,
+                                NodeType = ENodeType.StructArray,
                                 Name = "[" + (i + ArrayLowerBounds) + "]",
                                 Softdatatype = vte.Softdatatype,
                                 AccessId = i,
@@ -255,7 +255,7 @@ internal sealed class Browser
                         {
                             var arraynode = new Node
                             {
-                                NodeType = eNodeType.Array,
+                                NodeType = ENodeType.Array,
                                 Name = "[" + (i + ArrayLowerBounds) + "]",
                                 Softdatatype = vte.Softdatatype,
                                 AccessId = i,
@@ -314,7 +314,7 @@ internal sealed class Browser
                         {
                             var arraynode = new Node
                             {
-                                NodeType = eNodeType.StructArray,
+                                NodeType = ENodeType.StructArray,
                                 Name = aname,
                                 Softdatatype = vte.Softdatatype,
                                 AccessId = id,
@@ -339,7 +339,7 @@ internal sealed class Browser
                         {
                             var arraynode = new Node
                             {
-                                NodeType = eNodeType.Array,
+                                NodeType = ENodeType.Array,
                                 Name = aname,
                                 Softdatatype = vte.Softdatatype,
                                 AccessId = id,
@@ -479,7 +479,7 @@ internal sealed class Browser
 
     internal class Node
     {
-        public eNodeType NodeType { get; set; } = eNodeType.Undefined;
+        public ENodeType NodeType { get; set; } = ENodeType.Undefined;
         public string Name { get; set; } = string.Empty;
         public uint AccessId { get; set; }
         public uint Softdatatype { get; set; }
@@ -508,7 +508,7 @@ internal sealed class VarInfo
     public int NonOptBitoffset { get; set; }     // NonOptimized access: Bit-Offset where the value is located when reading a complete DB content.
 }
 
-internal enum eNodeType
+internal enum ENodeType
 {
     Undefined = 0,
     Root,

@@ -959,15 +959,15 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         foreach (var ed in exploreData)
         {
-            vars.AddBlockNode(eNodeType.Root, ed.db_name, ed.db_block_relid, ed.db_block_ti_relid);
+            vars.AddBlockNode(ENodeType.Root, ed.db_name, ed.db_block_relid, ed.db_block_ti_relid);
         }
 
         // Add IQMCT areas manually
-        vars.AddBlockNode(eNodeType.Root, "IArea", Ids.NativeObjects_theIArea_Rid, 0x90010000);
-        vars.AddBlockNode(eNodeType.Root, "QArea", Ids.NativeObjects_theQArea_Rid, 0x90020000);
-        vars.AddBlockNode(eNodeType.Root, "MArea", Ids.NativeObjects_theMArea_Rid, 0x90030000);
-        vars.AddBlockNode(eNodeType.Root, "S7Timers", Ids.NativeObjects_theS7Timers_Rid, 0x90050000);
-        vars.AddBlockNode(eNodeType.Root, "S7Counters", Ids.NativeObjects_theS7Counters_Rid, 0x90060000);
+        vars.AddBlockNode(ENodeType.Root, "IArea", Ids.NativeObjects_theIArea_Rid, 0x90010000);
+        vars.AddBlockNode(ENodeType.Root, "QArea", Ids.NativeObjects_theQArea_Rid, 0x90020000);
+        vars.AddBlockNode(ENodeType.Root, "MArea", Ids.NativeObjects_theMArea_Rid, 0x90030000);
+        vars.AddBlockNode(ENodeType.Root, "S7Timers", Ids.NativeObjects_theS7Timers_Rid, 0x90050000);
+        vars.AddBlockNode(ENodeType.Root, "S7Counters", Ids.NativeObjects_theS7Counters_Rid, 0x90060000);
 
         #endregion
 

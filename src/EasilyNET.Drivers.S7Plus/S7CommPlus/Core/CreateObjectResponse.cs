@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
+using System.Text;
+
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
 internal sealed class CreateObjectResponse(byte protocolVersion) : IS7pResponse
@@ -44,25 +46,25 @@ internal sealed class CreateObjectResponse(byte protocolVersion) : IS7pResponse
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<CreateObjectResponse>{Environment.NewLine}";
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>{Environment.NewLine}";
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>{Environment.NewLine}";
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>{Environment.NewLine}";
-        s += $"<ResponseSet>{Environment.NewLine}";
-        s += $"<ReturnValue>{ReturnValue}</ReturnValue>{Environment.NewLine}";
-        s += $"<ObjectIdCount>{ObjectIdCount}</ObjectIdCount>{Environment.NewLine}";
+        var sb = new StringBuilder();
+        sb.AppendLine("<CreateObjectResponse>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine("<ResponseSet>");
+        sb.AppendLine($"<ReturnValue>{ReturnValue}</ReturnValue>");
+        sb.AppendLine($"<ObjectIdCount>{ObjectIdCount}</ObjectIdCount>");
         if (ObjectIds != null)
         {
             foreach (var id in ObjectIds)
             {
-                s += $"<ObjectId>{id}</ObjectId>{Environment.NewLine}";
+                sb.AppendLine($"<ObjectId>{id}</ObjectId>");
             }
         }
-        s += $"<ResponseObject>{ResponseObject?.ToString()}</ResponseObject>{Environment.NewLine}";
-        s += $"</ResponseSet>{Environment.NewLine}";
-        s += $"</CreateObjectResponse>{Environment.NewLine}";
-        return s;
+        sb.AppendLine($"<ResponseObject>{ResponseObject?.ToString()}</ResponseObject>");
+        sb.AppendLine("</ResponseSet>");
+        sb.AppendLine("</CreateObjectResponse>");
+        return sb.ToString();
     }
 
     public static CreateObjectResponse? DeserializeFromPdu(Stream pdu)

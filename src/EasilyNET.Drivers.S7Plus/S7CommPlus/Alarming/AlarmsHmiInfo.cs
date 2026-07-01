@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Alarming;
 
@@ -65,26 +66,27 @@ internal sealed class AlarmsHmiInfo
 
     public override string ToString()
     {
-        var s = $"<AlarmsHmiInfo>{Environment.NewLine}";
-        s += $"<SyntaxId>{SyntaxId}</SyntaxId>{Environment.NewLine}";
-        s += $"<Version>{Version}</Version>{Environment.NewLine}";
-        s += $"<ClientAlarmId>{ClientAlarmId}</ClientAlarmId>{Environment.NewLine}";
-        s += $"<Priority>{Priority}</Priority>{Environment.NewLine}";
+        var sb = new StringBuilder();
+        sb.AppendLine("<AlarmsHmiInfo>");
+        sb.AppendLine($"<SyntaxId>{SyntaxId}</SyntaxId>");
+        sb.AppendLine($"<Version>{Version}</Version>");
+        sb.AppendLine($"<ClientAlarmId>{ClientAlarmId}</ClientAlarmId>");
+        sb.AppendLine($"<Priority>{Priority}</Priority>");
         if (SyntaxId >= 257)
         {
-            s += $"<Reserved1>{Reserved1}</Reserved1>{Environment.NewLine}";
-            s += $"<Reserved2>{Reserved2}</Reserved2>{Environment.NewLine}";
-            s += $"<Reserved3>{Reserved3}</Reserved3>{Environment.NewLine}";
+            sb.AppendLine($"<Reserved1>{Reserved1}</Reserved1>");
+            sb.AppendLine($"<Reserved2>{Reserved2}</Reserved2>");
+            sb.AppendLine($"<Reserved3>{Reserved3}</Reserved3>");
             if (SyntaxId >= 258)
             {
-                s += $"<AlarmClass>{AlarmClass}</AlarmClass>{Environment.NewLine}";
-                s += $"<Producer>{Producer}</Producer>{Environment.NewLine}";
-                s += $"<GroupId>{GroupId}</GroupId>{Environment.NewLine}";
-                s += $"<Flags>{Flags}</Flags>{Environment.NewLine}";
+                sb.AppendLine($"<AlarmClass>{AlarmClass}</AlarmClass>");
+                sb.AppendLine($"<Producer>{Producer}</Producer>");
+                sb.AppendLine($"<GroupId>{GroupId}</GroupId>");
+                sb.AppendLine($"<Flags>{Flags}</Flags>");
             }
         }
-        s += $"</AlarmsHmiInfo>{Environment.NewLine}";
-        return s;
+        sb.AppendLine("</AlarmsHmiInfo>");
+        return sb.ToString();
     }
 
     public int Deserialize(Stream buffer)

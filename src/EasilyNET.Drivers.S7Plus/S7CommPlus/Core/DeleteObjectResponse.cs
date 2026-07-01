@@ -43,19 +43,19 @@ internal sealed class DeleteObjectResponse(byte protocolVersion, bool withIntegr
 
     public override string ToString()
     {
-        var s = "";
-        s += $"<DeleteObjectResponse>{Environment.NewLine}";
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>{Environment.NewLine}";
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>{Environment.NewLine}";
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>{Environment.NewLine}";
-        s += $"<ResponseSet>{Environment.NewLine}";
-        s += $"<ReturnValue>{ReturnValue}</ReturnValue>{Environment.NewLine}";
-        s += $"<DeleteObjectId>{DeleteObjectId}</DeleteObjectId>{Environment.NewLine}";
-        s += $"</ResponseSet>{Environment.NewLine}";
-        s += $"<WithIntegrityId>{WithIntegrityId}</WithIntegrityId>{Environment.NewLine}";
-        s += $"<IntegrityId>{IntegrityId}</IntegrityId>{Environment.NewLine}";
-        s += $"</DeleteObjectResponse>{Environment.NewLine}";
-        return s;
+        return $"""
+            <DeleteObjectResponse>
+            <ProtocolVersion>{ProtocolVersion}</ProtocolVersion>
+            <SequenceNumber>{SequenceNumber}</SequenceNumber>
+            <TransportFlags>{TransportFlags}</TransportFlags>
+            <ResponseSet>
+            <ReturnValue>{ReturnValue}</ReturnValue>
+            <DeleteObjectId>{DeleteObjectId}</DeleteObjectId>
+            </ResponseSet>
+            <WithIntegrityId>{WithIntegrityId}</WithIntegrityId>
+            <IntegrityId>{IntegrityId}</IntegrityId>
+            </DeleteObjectResponse>
+            """;
     }
 
     public static DeleteObjectResponse? DeserializeFromPdu(Stream pdu, bool withIntegrityId)

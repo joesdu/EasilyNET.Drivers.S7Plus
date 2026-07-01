@@ -42,7 +42,7 @@ internal sealed class PVartypeList
         var i = 1;
         foreach (var elem in Elements)
         {
-            s.AppendLine($"<Element index=\"{i}\">");
+            s.AppendLine($"""<Element index="{i}">""");
             s.Append(elem.ToString());
             s.AppendLine("</Element>");
             i++;

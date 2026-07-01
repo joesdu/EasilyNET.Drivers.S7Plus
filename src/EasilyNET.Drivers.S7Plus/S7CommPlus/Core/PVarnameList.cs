@@ -41,7 +41,7 @@ internal sealed class PVarnameList
         s.AppendLine("<VarnameList>");
         foreach (var name in Names)
         {
-            s.AppendLine($"<Name index=\"{i}\">{name}</Name>");
+            s.AppendLine($"""<Name index="{i}">{name}</Name>""");
             i++;
         }
         s.AppendLine("</VarnameList>");

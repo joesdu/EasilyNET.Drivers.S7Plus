@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
@@ -154,16 +155,17 @@ internal sealed class CommRessources
 
     public override string ToString()
     {
-        var s = $"<CommRessources>{Environment.NewLine}";
-        s += $"<TagsPerReadRequestMax>{TagsPerReadRequestMax}</TagsPerReadRequestMax>{Environment.NewLine}";
-        s += $"<TagsPerWriteRequestMax>{TagsPerWriteRequestMax}</TagsPerWriteRequestMax>{Environment.NewLine}";
-        s += $"<PlcAttributesMax>{PlcAttributesMax}</PlcAttributesMax>{Environment.NewLine}";
-        s += $"<PlcAttributesFree>{PlcAttributesFree}</PlcAttributesFree>{Environment.NewLine}";
-        s += $"<PlcSubscriptionsMax>{PlcSubscriptionsMax}</PlcSubscriptionsMax>{Environment.NewLine}";
-        s += $"<PlcSubscriptionsFree>{PlcSubscriptionsFree}</PlcSubscriptionsFree>{Environment.NewLine}";
-        s += $"<SubscriptionMemoryMax>{SubscriptionMemoryMax}</SubscriptionMemoryMax>{Environment.NewLine}";
-        s += $"<SubscriptionMemoryFree>{SubscriptionMemoryFree}</SubscriptionMemoryFree>{Environment.NewLine}";
-        s += $"</CommRessources>{Environment.NewLine}";
-        return s;
+        var sb = new StringBuilder();
+        sb.AppendLine($"<CommRessources>");
+        sb.AppendLine($"<TagsPerReadRequestMax>{TagsPerReadRequestMax}</TagsPerReadRequestMax>");
+        sb.AppendLine($"<TagsPerWriteRequestMax>{TagsPerWriteRequestMax}</TagsPerWriteRequestMax>");
+        sb.AppendLine($"<PlcAttributesMax>{PlcAttributesMax}</PlcAttributesMax>");
+        sb.AppendLine($"<PlcAttributesFree>{PlcAttributesFree}</PlcAttributesFree>");
+        sb.AppendLine($"<PlcSubscriptionsMax>{PlcSubscriptionsMax}</PlcSubscriptionsMax>");
+        sb.AppendLine($"<PlcSubscriptionsFree>{PlcSubscriptionsFree}</PlcSubscriptionsFree>");
+        sb.AppendLine($"<SubscriptionMemoryMax>{SubscriptionMemoryMax}</SubscriptionMemoryMax>");
+        sb.AppendLine($"<SubscriptionMemoryFree>{SubscriptionMemoryFree}</SubscriptionMemoryFree>");
+        sb.AppendLine($"</CommRessources>");
+        return sb.ToString();
     }
 }

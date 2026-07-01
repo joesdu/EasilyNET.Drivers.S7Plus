@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: LGPL-3.0-or-later
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
+using System.Text;
 
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
@@ -113,24 +114,24 @@ internal sealed class SetMultiVariablesRequest(byte protocolVersion) : IS7pReque
 
     public override string ToString()
     {
-        var s = "";
-        s += "<SetMultiVariablesRequest>" + Environment.NewLine;
-        s += $"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>" + Environment.NewLine;
-        s += $"<SequenceNumber>{SequenceNumber}</SequenceNumber>" + Environment.NewLine;
-        s += $"<SessionId>{SessionId}</SessionId>" + Environment.NewLine;
-        s += $"<TransportFlags>{TransportFlags}</TransportFlags>" + Environment.NewLine;
-        s += "<RequestSet>" + Environment.NewLine;
-        s += $"<InObjectId>{InObjectId}</InObjectId>" + Environment.NewLine;
-        s += $"<ItemCount>{ValueList.Count}</ItemCount>" + Environment.NewLine;
+        var sb = new StringBuilder();
+        sb.AppendLine("<SetMultiVariablesRequest>");
+        sb.AppendLine($"<ProtocolVersion>{ProtocolVersion}</ProtocolVersion>");
+        sb.AppendLine($"<SequenceNumber>{SequenceNumber}</SequenceNumber>");
+        sb.AppendLine($"<SessionId>{SessionId}</SessionId>");
+        sb.AppendLine($"<TransportFlags>{TransportFlags}</TransportFlags>");
+        sb.AppendLine("<RequestSet>");
+        sb.AppendLine($"<InObjectId>{InObjectId}</InObjectId>");
+        sb.AppendLine($"<ItemCount>{ValueList.Count}</ItemCount>");
         if (InObjectId > 0)
         {
-            s += $"<ItemAddressCount>{AddressList.Count}</ItemAddressCount>" + Environment.NewLine;
-            s += "<AddressList>" + Environment.NewLine;
+            sb.AppendLine($"<ItemAddressCount>{AddressList.Count}</ItemAddressCount>");
+            sb.AppendLine("<AddressList>");
             foreach (var id in AddressList)
             {
-                s += $"<Id>{id}</Id>" + Environment.NewLine;
+                sb.AppendLine($"<Id>{id}</Id>");
             }
-            s += "</AddressList>" + Environment.NewLine;
+            sb.AppendLine("</AddressList>");
         }
         else
         {
@@ -139,22 +140,22 @@ internal sealed class SetMultiVariablesRequest(byte protocolVersion) : IS7pReque
             {
                 fieldCount += adr.NumberOfFields;
             }
-            s += $"<NumberOfFields>{fieldCount}</NumberOfFields>" + Environment.NewLine;
-            s += "<AddressList>" + Environment.NewLine;
+            sb.AppendLine($"<NumberOfFields>{fieldCount}</NumberOfFields>");
+            sb.AppendLine("<AddressList>");
             foreach (var adr in AddressListVar)
             {
-                s += adr.ToString();
+                sb.Append(adr.ToString());
             }
-            s += "</AddressList>" + Environment.NewLine;
+            sb.AppendLine("</AddressList>");
         }
-        s += "<ValueList>" + Environment.NewLine;
+        sb.AppendLine("<ValueList>");
         foreach (var val in ValueList)
         {
-            s += $"<Value>{val}</Value>" + Environment.NewLine;
+            sb.AppendLine($"<Value>{val}</Value>");
         }
-        s += "</ValueList>" + Environment.NewLine;
-        s += "</RequestSet>" + Environment.NewLine;
-        s += "</SetMultiVariablesRequest>" + Environment.NewLine;
-        return s;
+        sb.AppendLine("</ValueList>");
+        sb.AppendLine("</RequestSet>");
+        sb.AppendLine("</SetMultiVariablesRequest>");
+        return sb.ToString();
     }
 }
