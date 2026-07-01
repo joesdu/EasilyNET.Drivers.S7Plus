@@ -39,10 +39,10 @@ internal sealed class AlarmsAsCgs
         ArgumentNullException.ThrowIfNull(str, nameof(str));
         var asCgs = new AlarmsAsCgs
         {
-            AllStatesInfo = ((ValueUSInt)str.GetStructElement(Ids.AS_CGS_AllStatesInfo)).GetValue(),
-            Timestamp = Utils.DtFromValueTimestamp(((ValueTimestamp)str.GetStructElement(Ids.AS_CGS_Timestamp)).GetValue()),
+            AllStatesInfo = ((ValueUSInt)str.GetStructElement(Ids.AS_CGS_AllStatesInfo)).Value,
+            Timestamp = Utils.DtFromValueTimestamp(((ValueTimestamp)str.GetStructElement(Ids.AS_CGS_Timestamp)).Value),
             AssociatedValues = AlarmsAssociatedValues.FromValueBlob((ValueBlobArray)str.GetStructElement(Ids.AS_CGS_AssociatedValues)),
-            AckTimestamp = Utils.DtFromValueTimestamp(((ValueTimestamp)str.GetStructElement(Ids.AS_CGS_AckTimestamp)).GetValue())
+            AckTimestamp = Utils.DtFromValueTimestamp(((ValueTimestamp)str.GetStructElement(Ids.AS_CGS_AckTimestamp)).Value)
         };
         return asCgs;
     }

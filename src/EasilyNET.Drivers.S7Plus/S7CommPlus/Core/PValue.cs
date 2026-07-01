@@ -101,7 +101,7 @@ internal abstract class PValue : IS7pSerialize
             switch (datatype)
             {
                 case Datatype.Null:
-                    return ValueNull.Deserialize(buffer, flags);
+                    return ValueNull.Deserialize(flags);
                 case Datatype.Bool:
                     return ValueBool.Deserialize(buffer, flags);
                 case Datatype.USInt:
@@ -181,7 +181,7 @@ internal sealed class ValueNull : PValue
         return """<Value type="Null"></Value>""";
     }
 
-    public static ValueNull Deserialize(Stream buffer, byte flags)
+    public static ValueNull Deserialize(byte flags)
     {
         return new ValueNull(flags);
     }
@@ -189,7 +189,7 @@ internal sealed class ValueNull : PValue
 
 internal sealed class ValueBool : PValue
 {
-    bool Value;
+    public bool Value { get; private set; }
 
     public ValueBool(bool value) : this(value, 0)
     {
@@ -199,11 +199,6 @@ internal sealed class ValueBool : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public bool GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -235,7 +230,7 @@ internal sealed class ValueBool : PValue
 /// </summary>
 internal sealed class ValueBoolArray : PValue
 {
-    bool[] Value = [];
+    public bool[] Value { get; private set; } = [];
 
     public ValueBoolArray(bool[] value) : this(value, FLAGS_ARRAY)
     {
@@ -249,11 +244,6 @@ internal sealed class ValueBoolArray : PValue
             Value = new bool[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public bool[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -283,7 +273,6 @@ internal sealed class ValueBoolArray : PValue
 
     public static ValueBoolArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        bool[] value;
         uint size;
         if (!disableVlq)
         {
@@ -293,7 +282,7 @@ internal sealed class ValueBoolArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new bool[size];
+        var value = new bool[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeByte(buffer, out var bv);
@@ -305,7 +294,7 @@ internal sealed class ValueBoolArray : PValue
 
 internal sealed class ValueUSInt : PValue
 {
-    byte Value;
+    public byte Value { get; private set; }
 
     public ValueUSInt(byte value) : this(value, 0)
     {
@@ -315,11 +304,6 @@ internal sealed class ValueUSInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public byte GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -345,7 +329,7 @@ internal sealed class ValueUSInt : PValue
 
 internal sealed class ValueUSIntArray : PValue
 {
-    byte[] Value = [];
+    public byte[] Value { get; private set; } = [];
 
     public ValueUSIntArray(byte[] value) : this(value, FLAGS_ARRAY)
     {
@@ -359,11 +343,6 @@ internal sealed class ValueUSIntArray : PValue
             Value = new byte[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public byte[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -392,7 +371,6 @@ internal sealed class ValueUSIntArray : PValue
 
     public static ValueUSIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        byte[] value;
         uint size;
         if (!disableVlq)
         {
@@ -402,7 +380,7 @@ internal sealed class ValueUSIntArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new byte[size];
+        var value = new byte[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeByte(buffer, out value[i]);
@@ -413,7 +391,7 @@ internal sealed class ValueUSIntArray : PValue
 
 internal sealed class ValueUInt : PValue
 {
-    ushort Value;
+    public ushort Value { get; private set; }
 
     public ValueUInt(ushort value) : this(value, 0)
     {
@@ -423,11 +401,6 @@ internal sealed class ValueUInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public ushort GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -453,7 +426,7 @@ internal sealed class ValueUInt : PValue
 
 internal sealed class ValueUIntArray : PValue
 {
-    ushort[] Value = [];
+    public ushort[] Value { get; private set; } = [];
 
     public ValueUIntArray(ushort[] value) : this(value, FLAGS_ARRAY)
     {
@@ -467,11 +440,6 @@ internal sealed class ValueUIntArray : PValue
             Value = new ushort[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public ushort[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -500,7 +468,6 @@ internal sealed class ValueUIntArray : PValue
 
     public static ValueUIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        ushort[] value;
         uint size;
         if (!disableVlq)
         {
@@ -510,7 +477,7 @@ internal sealed class ValueUIntArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new ushort[size];
+        var value = new ushort[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeUInt16(buffer, out value[i]);
@@ -521,7 +488,7 @@ internal sealed class ValueUIntArray : PValue
 
 internal sealed class ValueUDInt : PValue
 {
-    uint Value;
+    public uint Value {  get; private set; }
 
     public ValueUDInt(uint value) : this(value, 0)
     {
@@ -531,11 +498,6 @@ internal sealed class ValueUDInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public uint GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -569,7 +531,7 @@ internal sealed class ValueUDInt : PValue
 
 internal sealed class ValueUDIntArray : PValue
 {
-    uint[] Value = [];
+    public uint[] Value { get; private set; } = [];
 
     public ValueUDIntArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -583,11 +545,6 @@ internal sealed class ValueUDIntArray : PValue
             Value = new uint[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public uint[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -646,7 +603,7 @@ internal sealed class ValueUDIntArray : PValue
 // E.g.: Reading 1037 (SystemLimits) via GetVarSubStreamed
 internal sealed class ValueUDIntSparseArray : PValue
 {
-    Dictionary<uint, uint> Value = [];
+    public Dictionary<uint, uint> Value { get; private set; } = [];
 
     public ValueUDIntSparseArray(Dictionary<uint, uint> value) : this(value, FLAGS_SPARSEARRAY)
     {
@@ -659,11 +616,6 @@ internal sealed class ValueUDIntSparseArray : PValue
         {
             Value = [with(value)];
         }
-    }
-
-    public Dictionary<uint, uint> GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -722,7 +674,7 @@ internal sealed class ValueUDIntSparseArray : PValue
 
 internal sealed class ValueULInt : PValue
 {
-    ulong Value;
+    public ulong Value { get; private set; }
 
     public ValueULInt(ulong value) : this(value, 0)
     {
@@ -732,11 +684,6 @@ internal sealed class ValueULInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public ulong GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -770,7 +717,7 @@ internal sealed class ValueULInt : PValue
 
 internal sealed class ValueULIntArray : PValue
 {
-    ulong[] Value = [];
+    public ulong[] Value { get; private set; } = [];
 
     public ValueULIntArray(ulong[] value) : this(value, FLAGS_ARRAY)
     {
@@ -784,11 +731,6 @@ internal sealed class ValueULIntArray : PValue
             Value = new ulong[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public ulong[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -843,7 +785,7 @@ internal sealed class ValueULIntArray : PValue
 
 internal sealed class ValueSInt : PValue
 {
-    sbyte Value;
+    public sbyte Value { get; private set; }
 
     public ValueSInt(sbyte value) : this(value, 0)
     {
@@ -853,11 +795,6 @@ internal sealed class ValueSInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public sbyte GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -876,15 +813,14 @@ internal sealed class ValueSInt : PValue
 
     public static ValueSInt Deserialize(Stream buffer, byte flags)
     {
-        byte value;
-        S7p.DecodeByte(buffer, out value);
+        S7p.DecodeByte(buffer, out var value);
         return new ValueSInt((sbyte)value, flags);
     }
 }
 
 internal sealed class ValueSIntArray : PValue
 {
-    sbyte[] Value = [];
+    public sbyte[] Value { get; private set; } = [];
 
     public ValueSIntArray(sbyte[] value) : this(value, FLAGS_ARRAY)
     {
@@ -898,11 +834,6 @@ internal sealed class ValueSIntArray : PValue
             Value = new sbyte[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public sbyte[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -931,7 +862,6 @@ internal sealed class ValueSIntArray : PValue
 
     public static ValueSIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        sbyte[] value;
         uint size;
         if (!disableVlq)
         {
@@ -941,7 +871,7 @@ internal sealed class ValueSIntArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new sbyte[size];
+        var value = new sbyte[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeByte(buffer, out var b);
@@ -953,7 +883,7 @@ internal sealed class ValueSIntArray : PValue
 
 internal sealed class ValueInt : PValue
 {
-    short Value;
+    public short Value { get; private set; }
 
     public ValueInt(short value) : this(value, 0)
     {
@@ -963,11 +893,6 @@ internal sealed class ValueInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public short GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -993,7 +918,7 @@ internal sealed class ValueInt : PValue
 
 internal sealed class ValueIntArray : PValue
 {
-    short[] Value = [];
+    public short[] Value { get; private set; } = [];
 
     public ValueIntArray(short[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1007,11 +932,6 @@ internal sealed class ValueIntArray : PValue
             Value = new short[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public short[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1040,7 +960,6 @@ internal sealed class ValueIntArray : PValue
 
     public static ValueIntArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        short[] value;
         uint size;
         if (!disableVlq)
         {
@@ -1050,7 +969,7 @@ internal sealed class ValueIntArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new short[size];
+        var value = new short[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeInt16(buffer, out value[i]);
@@ -1061,7 +980,7 @@ internal sealed class ValueIntArray : PValue
 
 internal sealed class ValueDInt : PValue
 {
-    int Value;
+    public int Value { get; private set; }
 
     public ValueDInt(int value) : this(value, 0)
     {
@@ -1071,11 +990,6 @@ internal sealed class ValueDInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public int GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1109,7 +1023,7 @@ internal sealed class ValueDInt : PValue
 
 internal sealed class ValueDIntArray : PValue
 {
-    int[] Value = [];
+    public int[] Value { get; private set; } = [];
 
     public ValueDIntArray(int[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1123,11 +1037,6 @@ internal sealed class ValueDIntArray : PValue
             Value = new int[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public int[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1182,7 +1091,7 @@ internal sealed class ValueDIntArray : PValue
 
 internal sealed class ValueDIntSparseArray : PValue
 {
-    Dictionary<uint, int> Value = [];
+    public Dictionary<uint, int> Value { get; private set; } = [];
 
     public ValueDIntSparseArray(Dictionary<uint, int> value) : this(value, FLAGS_SPARSEARRAY)
     {
@@ -1195,11 +1104,6 @@ internal sealed class ValueDIntSparseArray : PValue
         {
             Value = [with(value)];
         }
-    }
-
-    public Dictionary<uint, int> GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1258,7 +1162,7 @@ internal sealed class ValueDIntSparseArray : PValue
 
 internal sealed class ValueLInt : PValue
 {
-    long Value;
+    public long Value { get; private set; }
 
     public ValueLInt(long value) : this(value, 0)
     {
@@ -1268,11 +1172,6 @@ internal sealed class ValueLInt : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public long GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1306,7 +1205,7 @@ internal sealed class ValueLInt : PValue
 
 internal sealed class ValueLIntArray : PValue
 {
-    long[] Value = [];
+    public long[] Value { get; private set; } = [];
 
     public ValueLIntArray(long[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1320,11 +1219,6 @@ internal sealed class ValueLIntArray : PValue
             Value = new long[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public long[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1379,7 +1273,7 @@ internal sealed class ValueLIntArray : PValue
 
 internal sealed class ValueByte : PValue
 {
-    byte Value;
+    public byte Value { get; private set; }
 
     public ValueByte(byte value) : this(value, 0)
     {
@@ -1389,11 +1283,6 @@ internal sealed class ValueByte : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public byte GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1419,7 +1308,7 @@ internal sealed class ValueByte : PValue
 
 internal sealed class ValueByteArray : PValue
 {
-    byte[] Value = [];
+    public byte[] Value { get; private set; } = [];
 
     public ValueByteArray(byte[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1433,11 +1322,6 @@ internal sealed class ValueByteArray : PValue
             Value = new byte[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public byte[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1466,7 +1350,6 @@ internal sealed class ValueByteArray : PValue
 
     public static ValueByteArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        byte[] value;
         uint size;
         if (!disableVlq)
         {
@@ -1476,7 +1359,7 @@ internal sealed class ValueByteArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new byte[size];
+        var value = new byte[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeByte(buffer, out value[i]);
@@ -1487,7 +1370,7 @@ internal sealed class ValueByteArray : PValue
 
 internal sealed class ValueWord : PValue
 {
-    ushort Value;
+    public ushort Value { get; private set; }
 
     public ValueWord(ushort value) : this(value, 0)
     {
@@ -1497,11 +1380,6 @@ internal sealed class ValueWord : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public ushort GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1527,7 +1405,7 @@ internal sealed class ValueWord : PValue
 
 internal sealed class ValueWordArray : PValue
 {
-    ushort[] Value = [];
+    public ushort[] Value { get; private set; } = [];
 
     public ValueWordArray(ushort[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1541,11 +1419,6 @@ internal sealed class ValueWordArray : PValue
             Value = new ushort[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public ushort[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1574,7 +1447,6 @@ internal sealed class ValueWordArray : PValue
 
     public static ValueWordArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        ushort[] value;
         uint size;
         if (!disableVlq)
         {
@@ -1584,7 +1456,7 @@ internal sealed class ValueWordArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new ushort[size];
+        var value = new ushort[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeUInt16(buffer, out value[i]);
@@ -1595,7 +1467,7 @@ internal sealed class ValueWordArray : PValue
 
 internal sealed class ValueDWord : PValue
 {
-    uint Value;
+    public uint Value { get; private set; }
 
     public ValueDWord(uint value) : this(value, 0)
     {
@@ -1605,11 +1477,6 @@ internal sealed class ValueDWord : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public uint GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1635,7 +1502,7 @@ internal sealed class ValueDWord : PValue
 
 internal sealed class ValueDWordArray : PValue
 {
-    uint[] Value = [];
+    public uint[] Value { get; private set; } = [];
 
     public ValueDWordArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1649,11 +1516,6 @@ internal sealed class ValueDWordArray : PValue
             Value = new uint[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public uint[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1682,7 +1544,6 @@ internal sealed class ValueDWordArray : PValue
 
     public static ValueDWordArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        uint[] value;
         uint size;
         if (!disableVlq)
         {
@@ -1692,7 +1553,7 @@ internal sealed class ValueDWordArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new uint[size];
+        var value = new uint[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeUInt32(buffer, out value[i]);
@@ -1703,7 +1564,7 @@ internal sealed class ValueDWordArray : PValue
 
 internal sealed class ValueLWord : PValue
 {
-    ulong Value;
+    public ulong Value { get; private set; }
 
     public ValueLWord(ulong value) : this(value, 0)
     {
@@ -1713,11 +1574,6 @@ internal sealed class ValueLWord : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public ulong GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1743,7 +1599,7 @@ internal sealed class ValueLWord : PValue
 
 internal sealed class ValueLWordArray : PValue
 {
-    ulong[] Value = [];
+    public ulong[] Value { get; private set; } = [];
 
     public ValueLWordArray(ulong[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1757,11 +1613,6 @@ internal sealed class ValueLWordArray : PValue
             Value = new ulong[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public ulong[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1790,7 +1641,6 @@ internal sealed class ValueLWordArray : PValue
 
     public static ValueLWordArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        ulong[] value;
         uint size;
         if (!disableVlq)
         {
@@ -1800,7 +1650,7 @@ internal sealed class ValueLWordArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new ulong[size];
+        var value = new ulong[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeUInt64(buffer, out value[i]);
@@ -1811,7 +1661,7 @@ internal sealed class ValueLWordArray : PValue
 
 internal sealed class ValueReal : PValue
 {
-    float Value;
+    public float Value { get; private set; }
 
     public ValueReal(float value) : this(value, 0)
     {
@@ -1821,11 +1671,6 @@ internal sealed class ValueReal : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public float GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1851,7 +1696,7 @@ internal sealed class ValueReal : PValue
 
 internal sealed class ValueRealArray : PValue
 {
-    float[] Value = [];
+    public float[] Value { get; private set; } = [];
 
     public ValueRealArray(float[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1865,11 +1710,6 @@ internal sealed class ValueRealArray : PValue
             Value = new float[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public float[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1898,7 +1738,6 @@ internal sealed class ValueRealArray : PValue
 
     public static ValueRealArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        float[] value;
         uint size;
         if (!disableVlq)
         {
@@ -1908,7 +1747,7 @@ internal sealed class ValueRealArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new float[size];
+        var value = new float[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeFloat(buffer, out value[i]);
@@ -1919,21 +1758,14 @@ internal sealed class ValueRealArray : PValue
 
 internal sealed class ValueLReal : PValue
 {
-    double Value;
+    public double Value { get; private set; }
 
-    public ValueLReal(double value) : this(value, 0)
-    {
-    }
+    public ValueLReal(double value) : this(value, 0) { }
 
     public ValueLReal(double value, byte flags)
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public double GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -1959,7 +1791,7 @@ internal sealed class ValueLReal : PValue
 
 internal sealed class ValueLRealArray : PValue
 {
-    double[] Value = [];
+    public double[] Value { get; private set; } = [];
 
     public ValueLRealArray(double[] value) : this(value, FLAGS_ARRAY)
     {
@@ -1973,11 +1805,6 @@ internal sealed class ValueLRealArray : PValue
             Value = new double[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public double[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2006,7 +1833,6 @@ internal sealed class ValueLRealArray : PValue
 
     public static ValueLRealArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        double[] value;
         uint size;
         if (!disableVlq)
         {
@@ -2016,7 +1842,7 @@ internal sealed class ValueLRealArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new double[size];
+        var value = new double[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeDouble(buffer, out value[i]);
@@ -2027,7 +1853,7 @@ internal sealed class ValueLRealArray : PValue
 
 internal sealed class ValueTimestamp : PValue
 {
-    ulong Value;
+    public ulong Value { get; private set; }
 
     public ValueTimestamp(ulong value) : this(value, 0)
     {
@@ -2037,11 +1863,6 @@ internal sealed class ValueTimestamp : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public ulong GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2100,7 +1921,7 @@ internal sealed class ValueTimestamp : PValue
 
 internal sealed class ValueTimestampArray : PValue
 {
-    ulong[] Value = [];
+    public ulong[] Value { get; private set; } = [];
 
     public ValueTimestampArray(ulong[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2110,11 +1931,6 @@ internal sealed class ValueTimestampArray : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public ulong[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2143,7 +1959,6 @@ internal sealed class ValueTimestampArray : PValue
 
     public static ValueTimestampArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        ulong[] value;
         uint size;
         if (!disableVlq)
         {
@@ -2153,7 +1968,7 @@ internal sealed class ValueTimestampArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new ulong[size];
+        var value = new ulong[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeUInt64(buffer, out value[i]);
@@ -2164,7 +1979,7 @@ internal sealed class ValueTimestampArray : PValue
 
 internal sealed class ValueTimespan : PValue
 {
-    long Value;
+    public long Value { get; private set; }
 
     public ValueTimespan(long value) : this(value, 0)
     {
@@ -2174,11 +1989,6 @@ internal sealed class ValueTimespan : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public long GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2258,7 +2068,7 @@ internal sealed class ValueTimespan : PValue
 
 internal sealed class ValueTimespanArray : PValue
 {
-    long[] Value = [];
+    public long[] Value { get; private set; } = [];
 
     public ValueTimespanArray(long[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2273,12 +2083,6 @@ internal sealed class ValueTimespanArray : PValue
             Array.Copy(value, Value, value.Length);
         }
     }
-
-    public long[] GetValue()
-    {
-        return Value;
-    }
-
     public override int Serialize(Stream buffer)
     {
         var ret = 0;
@@ -2305,7 +2109,6 @@ internal sealed class ValueTimespanArray : PValue
 
     public static ValueTimespanArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        long[] value;
         uint size;
         if (!disableVlq)
         {
@@ -2315,7 +2118,7 @@ internal sealed class ValueTimespanArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new long[size];
+        var value = new long[size];
         for (var i = 0; i < size; i++)
         {
             if (!disableVlq)
@@ -2333,7 +2136,7 @@ internal sealed class ValueTimespanArray : PValue
 
 internal sealed class ValueRID : PValue
 {
-    uint Value;
+    public uint Value { get; private set; }
 
     public ValueRID(uint rid) : this(rid, 0)
     {
@@ -2343,11 +2146,6 @@ internal sealed class ValueRID : PValue
     {
         DatatypeFlags = flags;
         Value = rid;
-    }
-
-    public uint GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2373,7 +2171,7 @@ internal sealed class ValueRID : PValue
 
 internal sealed class ValueRIDArray : PValue
 {
-    uint[] Value = [];
+    public uint[] Value { get; private set; } = [];
 
     public ValueRIDArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2387,11 +2185,6 @@ internal sealed class ValueRIDArray : PValue
             Value = new uint[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public uint[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2420,7 +2213,6 @@ internal sealed class ValueRIDArray : PValue
 
     public static ValueRIDArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
-        uint[] value;
         uint size;
         if (!disableVlq)
         {
@@ -2430,7 +2222,7 @@ internal sealed class ValueRIDArray : PValue
         {
             S7p.DecodeUInt32(buffer, out size);
         }
-        value = new uint[size];
+        var value = new uint[size];
         for (var i = 0; i < size; i++)
         {
             S7p.DecodeUInt32(buffer, out value[i]);
@@ -2441,7 +2233,7 @@ internal sealed class ValueRIDArray : PValue
 
 internal sealed class ValueAID : PValue
 {
-    uint Value;
+    public uint Value { get; private set; }
 
     public ValueAID(uint value) : this(value, 0)
     {
@@ -2451,11 +2243,6 @@ internal sealed class ValueAID : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public uint GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2489,7 +2276,7 @@ internal sealed class ValueAID : PValue
 
 internal sealed class ValueAIDArray : PValue
 {
-    uint[] Value = [];
+    public uint[] Value { get; private set; } = [];
 
     public ValueAIDArray(uint[] value) : this(value, FLAGS_ARRAY)
     {
@@ -2503,11 +2290,6 @@ internal sealed class ValueAIDArray : PValue
             Value = new uint[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public uint[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2562,11 +2344,10 @@ internal sealed class ValueAIDArray : PValue
 
 internal sealed class ValueBlob : PValue
 {
-    public uint BlobRootId;
-    byte[] Value = [];
-
-    public bool HasBlobType; // Special
-    public byte BlobType;    // Special
+    public uint BlobRootId { get; private set; }
+    public byte[] Value { get; private set; } = [];
+    public bool HasBlobType { get; private set; } // Special
+    public byte BlobType { get; private set; }    // Special
 
     public ValueBlob(uint blobRootId, byte[] value) : this(blobRootId, value, 0)
     {
@@ -2582,11 +2363,6 @@ internal sealed class ValueBlob : PValue
             Value = new byte[value.Length];
             Array.Copy(value, Value, value.Length);
         }
-    }
-
-    public byte[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2672,7 +2448,7 @@ internal sealed class ValueBlob : PValue
 
 internal sealed class ValueBlobArray : PValue
 {
-    ValueBlob[] Value = [];
+    public ValueBlob[] Value { get; private set; } = [];
 
     public ValueBlobArray(ValueBlob[] value) : this(value, FLAGS_ADDRESSARRAY)
     {
@@ -2688,11 +2464,6 @@ internal sealed class ValueBlobArray : PValue
         }
     }
 
-    public ValueBlob[] GetValue()
-    {
-        return Value;
-    }
-
     public override int Serialize(Stream buffer)
     {
         var ret = 0;
@@ -2704,7 +2475,7 @@ internal sealed class ValueBlobArray : PValue
             // 仅内联每个 blob 的主体（rootId+长度+数据）；不能调用 ValueBlob.Serialize，
             // 因为后者会额外写出 {flags, Datatype.Blob} 头，而 Deserialize 逐元素并不读取该头。
             // 注：带类型 blob（BlobRootId>1 / HasBlobType）的写出不在此支持范围（解码端为只读场景）。
-            var data = Value[i].GetValue();
+            var data = Value[i].Value;
             ret += S7p.EncodeUInt32Vlq(buffer, Value[i].BlobRootId);
             ret += S7p.EncodeUInt32Vlq(buffer, (uint)data.Length);
             ret += S7p.EncodeOctets(buffer, data);
@@ -2747,8 +2518,8 @@ internal sealed class ValueBlobSparseArray : PValue
 {
     public struct BlobEntry
     {
-        public uint blobRootId;
-        public byte[] value;
+        public uint BlobRootId { get; set; }
+        public byte[] Value { get; set; }
     }
 
     public Dictionary<uint, BlobEntry> Value = [];
@@ -2766,11 +2537,6 @@ internal sealed class ValueBlobSparseArray : PValue
         }
     }
 
-    public Dictionary<uint, BlobEntry> GetValue()
-    {
-        return Value;
-    }
-
     public override int Serialize(Stream buffer)
     {
         var ret = 0;
@@ -2779,9 +2545,9 @@ internal sealed class ValueBlobSparseArray : PValue
         foreach (var v in Value)
         {
             ret += S7p.EncodeUInt32Vlq(buffer, v.Key);
-            ret += S7p.EncodeUInt32Vlq(buffer, v.Value.blobRootId);
-            ret += S7p.EncodeUInt32Vlq(buffer, (uint)v.Value.value.Length);
-            ret += S7p.EncodeOctets(buffer, v.Value.value);
+            ret += S7p.EncodeUInt32Vlq(buffer, v.Value.BlobRootId);
+            ret += S7p.EncodeUInt32Vlq(buffer, (uint)v.Value.Value.Length);
+            ret += S7p.EncodeOctets(buffer, v.Value.Value);
         }
         ret += S7p.EncodeByte(buffer, 0);
         return ret;
@@ -2792,10 +2558,10 @@ internal sealed class ValueBlobSparseArray : PValue
         var s = new StringBuilder($"""<Value type="BlobSparseArray">""");
         foreach (var v in Value)
         {
-            s.Append($"""<Value key="{v.Key}" BlobRootId="{v.Value.blobRootId}">""");
-            if (Value != null && v.Value.value != null)
+            s.Append($"""<Value key="{v.Key}" BlobRootId="{v.Value.BlobRootId}">""");
+            if (Value != null && v.Value.Value != null)
             {
-                s.Append(BitConverter.ToString(v.Value.value));
+                s.Append(BitConverter.ToString(v.Value.Value));
             }
             s.Append("</Value>");
         }
@@ -2806,19 +2572,18 @@ internal sealed class ValueBlobSparseArray : PValue
     public static ValueBlobSparseArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
         Dictionary<uint, BlobEntry> value = [];
-        uint k;
         var v = new BlobEntry();
-        uint blobSize;
         if (!disableVlq)
         {
-            S7p.DecodeUInt32Vlq(buffer, out k);
+            S7p.DecodeUInt32Vlq(buffer, out var k);
             while (k > 0)
             {
-                S7p.DecodeUInt32Vlq(buffer, out v.blobRootId);
-                S7p.DecodeUInt32Vlq(buffer, out blobSize);
-                v.value = new byte[blobSize];
+                S7p.DecodeUInt32Vlq(buffer, out var blobRootId);
+                v.BlobRootId = blobRootId;
+                S7p.DecodeUInt32Vlq(buffer, out var blobSize);
+                v.Value = new byte[blobSize];
                 S7p.DecodeOctets(buffer, (int)blobSize, out var blobData);
-                v.value = blobData ?? v.value;
+                v.Value = blobData ?? v.Value;
                 value.Add(k, v);
 
                 S7p.DecodeUInt32Vlq(buffer, out k);
@@ -2826,14 +2591,15 @@ internal sealed class ValueBlobSparseArray : PValue
         }
         else
         {
-            S7p.DecodeUInt32(buffer, out k);
+            S7p.DecodeUInt32(buffer, out var k);
             while (k > 0)
             {
-                S7p.DecodeUInt32(buffer, out v.blobRootId);
-                S7p.DecodeUInt32(buffer, out blobSize);
-                v.value = new byte[blobSize];
+                S7p.DecodeUInt32(buffer, out var blobRootId);
+                v.BlobRootId = blobRootId;
+                S7p.DecodeUInt32(buffer, out var blobSize);
+                v.Value = new byte[blobSize];
                 S7p.DecodeOctets(buffer, (int)blobSize, out var blobData);
-                v.value = blobData ?? v.value;
+                v.Value = blobData ?? v.Value;
                 value.Add(k, v);
 
                 S7p.DecodeUInt32(buffer, out k);
@@ -2845,7 +2611,7 @@ internal sealed class ValueBlobSparseArray : PValue
 
 internal sealed class ValueWString : PValue
 {
-    string Value = "";
+    public string Value { get; private set; } = "";
 
     public ValueWString(string value) : this(value, 0)
     {
@@ -2855,11 +2621,6 @@ internal sealed class ValueWString : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public string GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2896,7 +2657,7 @@ internal sealed class ValueWString : PValue
 
 internal sealed class ValueWStringArray : PValue
 {
-    string[] Value = [];
+    public string[] Value { get; private set; } = [];
 
     public ValueWStringArray(string[] value) : this(value, FLAGS_ADDRESSARRAY)
     {
@@ -2906,11 +2667,6 @@ internal sealed class ValueWStringArray : PValue
     {
         DatatypeFlags = flags;
         Value = value;
-    }
-
-    public string[] GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -2941,25 +2697,23 @@ internal sealed class ValueWStringArray : PValue
     public static ValueWStringArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
         string[] value;
-        uint stringlen;
-        uint arraySize;
         if (!disableVlq)
         {
-            S7p.DecodeUInt32Vlq(buffer, out arraySize);
+            S7p.DecodeUInt32Vlq(buffer, out var arraySize);
             value = new string[arraySize];
             for (var i = 0; i < arraySize; i++)
             {
-                S7p.DecodeUInt32Vlq(buffer, out stringlen);
+                S7p.DecodeUInt32Vlq(buffer, out var stringlen);
                 S7p.DecodeWString(buffer, (int)stringlen, out value[i]);
             }
         }
         else
         {
-            S7p.DecodeUInt32(buffer, out arraySize);
+            S7p.DecodeUInt32(buffer, out var arraySize);
             value = new string[arraySize];
             for (var i = 0; i < arraySize; i++)
             {
-                S7p.DecodeUInt32(buffer, out stringlen);
+                S7p.DecodeUInt32(buffer, out var stringlen);
                 S7p.DecodeWString(buffer, (int)stringlen, out value[i]);
             }
         }
@@ -2969,7 +2723,7 @@ internal sealed class ValueWStringArray : PValue
 
 internal sealed class ValueWStringSparseArray : PValue
 {
-    Dictionary<uint, string> Value = [];
+    public Dictionary<uint, string> Value { get; private set; } = [];
 
     public ValueWStringSparseArray(Dictionary<uint, string> value) : this(value, FLAGS_SPARSEARRAY)
     {
@@ -2982,11 +2736,6 @@ internal sealed class ValueWStringSparseArray : PValue
         {
             Value = [with(value)];
         }
-    }
-
-    public Dictionary<uint, string> GetValue()
-    {
-        return Value;
     }
 
     public override int Serialize(Stream buffer)
@@ -3018,27 +2767,24 @@ internal sealed class ValueWStringSparseArray : PValue
     public static ValueWStringSparseArray Deserialize(Stream buffer, byte flags, bool disableVlq)
     {
         Dictionary<uint, string> value = [];
-        uint k;
-        uint stringlen;
-        string v;
         if (!disableVlq)
         {
-            S7p.DecodeUInt32Vlq(buffer, out k);
+            S7p.DecodeUInt32Vlq(buffer, out var k);
             while (k > 0)
             {
-                S7p.DecodeUInt32Vlq(buffer, out stringlen);
-                S7p.DecodeWString(buffer, (int)stringlen, out v);
+                S7p.DecodeUInt32Vlq(buffer, out var stringlen);
+                S7p.DecodeWString(buffer, (int)stringlen, out var v);
                 value.Add(k, v);
                 S7p.DecodeUInt32Vlq(buffer, out k);
             }
         }
         else
         {
-            S7p.DecodeUInt32(buffer, out k);
+            S7p.DecodeUInt32(buffer, out var k);
             while (k > 0)
             {
-                S7p.DecodeUInt32(buffer, out stringlen);
-                S7p.DecodeWString(buffer, (int)stringlen, out v);
+                S7p.DecodeUInt32(buffer, out var stringlen);
+                S7p.DecodeWString(buffer, (int)stringlen, out var v);
                 value.Add(k, v);
                 S7p.DecodeUInt32(buffer, out k);
             }
@@ -3049,8 +2795,8 @@ internal sealed class ValueWStringSparseArray : PValue
 
 internal sealed class ValueStruct : PValue
 {
-    uint Value;
-    private Dictionary<uint, PValue> Elements = [];
+    public uint Value { get; private set; }
+    private readonly Dictionary<uint, PValue> Elements = [];
     /// <summary>
     /// InterfaceTimestamp: Only relevant if Value is transmitted as Packed Struct.
     /// Used on transmitting Systemdatatypes in a compact way (e.g. DTL).
@@ -3076,11 +2822,6 @@ internal sealed class ValueStruct : PValue
         DatatypeFlags = flags;
         Value = value;
         Elements = [];
-    }
-
-    public uint GetValue()
-    {
-        return Value;
     }
 
     public void AddStructElement(uint id, PValue elem)
@@ -3116,7 +2857,7 @@ internal sealed class ValueStruct : PValue
 
                 if (elem.Value.GetType() == typeof(ValueByteArray))
                 {
-                    var barr = ((ValueByteArray)elem.Value).GetValue();
+                    var barr = ((ValueByteArray)elem.Value).Value;
                     var elementcount = (uint)barr.Length;
                     ret += S7p.EncodeUInt32Vlq(buffer, elementcount);
                     // Don't use the Serialize method of ValueByteArray, because there is an additional header we don't want here.

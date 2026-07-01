@@ -98,7 +98,7 @@ internal sealed class PlcTagBool(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueBool)) == 0)
         {
-            Value = ((ValueBool)obj).GetValue();
+            Value = ((ValueBool)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -127,7 +127,7 @@ internal sealed class PlcTagByte(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueByte)) == 0)
         {
-            Value = ((ValueByte)obj).GetValue();
+            Value = ((ValueByte)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -162,7 +162,7 @@ internal sealed class PlcTagChar(string name, ItemAddress address, uint softdata
         if (CheckErrorAndType(err, obj, typeof(ValueUSInt)) == 0)
         {
             var v = new byte[1];
-            v[0] = ((ValueUSInt)obj).GetValue();
+            v[0] = ((ValueUSInt)obj).Value;
             Value = Encoding.GetEncoding(m_Encoding).GetString(v)[0];
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
@@ -201,7 +201,7 @@ internal sealed class PlcTagWord(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueWord)) == 0)
         {
-            Value = ((ValueWord)obj).GetValue();
+            Value = ((ValueWord)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -230,7 +230,7 @@ internal sealed class PlcTagInt(string name, ItemAddress address, uint softdatat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueInt)) == 0)
         {
-            Value = ((ValueInt)obj).GetValue();
+            Value = ((ValueInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -259,7 +259,7 @@ internal sealed class PlcTagDWord(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueDWord)) == 0)
         {
-            Value = ((ValueDWord)obj).GetValue();
+            Value = ((ValueDWord)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -288,7 +288,7 @@ internal sealed class PlcTagDInt(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueDInt)) == 0)
         {
-            Value = ((ValueDInt)obj).GetValue();
+            Value = ((ValueDInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -317,7 +317,7 @@ internal sealed class PlcTagReal(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueReal)) == 0)
         {
-            Value = ((ValueReal)obj).GetValue();
+            Value = ((ValueReal)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -355,7 +355,7 @@ internal sealed class PlcTagDate(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUInt)) == 0)
         {
-            var v = ((ValueUInt)obj).GetValue();
+            var v = ((ValueUInt)obj).Value;
             Value = new DateTime(1990, 1, 1).AddDays(v);
 
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
@@ -395,7 +395,7 @@ internal sealed class PlcTagTimeOfDay(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUDInt)) == 0)
         {
-            Value = ((ValueUDInt)obj).GetValue();
+            Value = ((ValueUDInt)obj).Value;
 
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
@@ -439,7 +439,7 @@ internal sealed class PlcTagTime(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueDInt)) == 0)
         {
-            Value = ((ValueDInt)obj).GetValue();
+            Value = ((ValueDInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -526,7 +526,7 @@ internal sealed class PlcTagS5Time(string name, ItemAddress address, uint softda
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueWord)) == 0)
         {
-            var v = ((ValueWord)obj).GetValue();
+            var v = ((ValueWord)obj).Value;
             TimeValue = BcdUshortToUshort((ushort)(v & 0x0FFF));
             TimeBase = (ushort)((v & 0x3000) >> 12);
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
@@ -595,7 +595,7 @@ internal sealed class PlcTagDateAndTime : PlcTag
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
-            var v = ((ValueUSIntArray)obj).GetValue();
+            var v = ((ValueUSIntArray)obj).Value;
             var ts = new int[8];
             for (var i = 0; i < 7; i++)
             {
@@ -675,7 +675,7 @@ internal sealed class PlcTagString(string name, ItemAddress address, uint softda
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
-            var v = ((ValueUSIntArray)obj).GetValue();
+            var v = ((ValueUSIntArray)obj).Value;
             int act_len = v[1];
             // IEC 61131-3 states ISO-646 IRV, with optional extensions like "Latin-1 Supplement".
             // Siemens TIA-Portal gives warnings using other than 7 Bit ASCII characters.
@@ -723,7 +723,7 @@ internal sealed class PlcTagPointer(string name, ItemAddress address, uint softd
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
-            Value = ((ValueUSIntArray)obj).GetValue();
+            Value = ((ValueUSIntArray)obj).Value;
 
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
@@ -757,7 +757,7 @@ internal sealed class PlcTagAny(string name, ItemAddress address, uint softdatat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
-            Value = ((ValueUSIntArray)obj).GetValue();
+            Value = ((ValueUSIntArray)obj).Value;
 
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
@@ -795,7 +795,7 @@ internal sealed class PlcTagLReal(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueLReal)) == 0)
         {
-            Value = ((ValueLReal)obj).GetValue();
+            Value = ((ValueLReal)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -824,7 +824,7 @@ internal sealed class PlcTagULInt(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueULInt)) == 0)
         {
-            Value = ((ValueULInt)obj).GetValue();
+            Value = ((ValueULInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -853,7 +853,7 @@ internal sealed class PlcTagLInt(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueLInt)) == 0)
         {
-            Value = ((ValueLInt)obj).GetValue();
+            Value = ((ValueLInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -882,7 +882,7 @@ internal sealed class PlcTagLWord(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueLWord)) == 0)
         {
-            Value = ((ValueLWord)obj).GetValue();
+            Value = ((ValueLWord)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -911,7 +911,7 @@ internal sealed class PlcTagUSInt(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUSInt)) == 0)
         {
-            Value = ((ValueUSInt)obj).GetValue();
+            Value = ((ValueUSInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -940,7 +940,7 @@ internal sealed class PlcTagUInt(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUInt)) == 0)
         {
-            Value = ((ValueUInt)obj).GetValue();
+            Value = ((ValueUInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -969,7 +969,7 @@ internal sealed class PlcTagUDInt(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUDInt)) == 0)
         {
-            Value = ((ValueUDInt)obj).GetValue();
+            Value = ((ValueUDInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -998,7 +998,7 @@ internal sealed class PlcTagSInt(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueSInt)) == 0)
         {
-            Value = ((ValueSInt)obj).GetValue();
+            Value = ((ValueSInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1027,7 +1027,7 @@ internal sealed class PlcTagWChar(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUInt)) == 0)
         {
-            Value = (char)((ValueUInt)obj).GetValue();
+            Value = (char)((ValueUInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1065,7 +1065,7 @@ internal sealed class PlcTagWString(string name, ItemAddress address, uint softd
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUIntArray)) == 0)
         {
-            var v = ((ValueUIntArray)obj).GetValue();
+            var v = ((ValueUIntArray)obj).Value;
             //var max_len = v[0];
             var act_len = v[1];
 
@@ -1108,7 +1108,7 @@ internal sealed class PlcTagLTime(string name, ItemAddress address, uint softdat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueTimespan)) == 0)
         {
-            Value = ((ValueTimespan)obj).GetValue();
+            Value = ((ValueTimespan)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1156,7 +1156,7 @@ internal sealed class PlcTagLTOD(string name, ItemAddress address, uint softdata
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueULInt)) == 0)
         {
-            Value = ((ValueULInt)obj).GetValue();
+            Value = ((ValueULInt)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1196,7 +1196,7 @@ internal sealed class PlcTagLDT(string name, ItemAddress address, uint softdatat
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueTimestamp)) == 0)
         {
-            Value = ((ValueTimestamp)obj).GetValue();
+            Value = ((ValueTimestamp)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1266,12 +1266,12 @@ internal sealed class PlcTagDTL : PlcTag
             // Use the default timestamp, or refresh it from browsing the plc, or from reading dtl first
             DTLInterfaceTimestamp = struct_val.PackedStructInterfaceTimestamp;
 
-            if (struct_val.GetValue() == 0x02000043)
+            if (struct_val.Value == 0x02000043)
             {
                 var elem = struct_val.GetStructElement(0x02000043);
                 if (elem.GetType() == typeof(ValueByteArray))
                 {
-                    var barr = ((ValueByteArray)elem).GetValue();
+                    var barr = ((ValueByteArray)elem).Value;
                     var year = (barr[0] * 256) + barr[1];
                     ValueNanosecond = ((uint)barr[8] * 16777216) + ((uint)barr[9] * 65536) + ((uint)barr[10] * 256) + barr[11];
                     Value = new DateTime(year, barr[2], barr[3], barr[5], barr[6], barr[7]);
@@ -1353,8 +1353,7 @@ internal sealed class PlcTagBoolArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueBoolArray)) == 0)
         {
-            Value = ((ValueBoolArray)obj).GetValue();
-
+            Value = ((ValueBoolArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1384,8 +1383,7 @@ internal sealed class PlcTagByteArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueByteArray)) == 0)
         {
-            Value = ((ValueByteArray)obj).GetValue();
-
+            Value = ((ValueByteArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1415,8 +1413,7 @@ internal sealed class PlcTagWordArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueWordArray)) == 0)
         {
-            Value = ((ValueWordArray)obj).GetValue();
-
+            Value = ((ValueWordArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1446,8 +1443,7 @@ internal sealed class PlcTagIntArray(string name, ItemAddress address, uint soft
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueIntArray)) == 0)
         {
-            Value = ((ValueIntArray)obj).GetValue();
-
+            Value = ((ValueIntArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1477,8 +1473,7 @@ internal sealed class PlcTagDWordArray(string name, ItemAddress address, uint so
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueDWordArray)) == 0)
         {
-            Value = ((ValueDWordArray)obj).GetValue();
-
+            Value = ((ValueDWordArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1509,7 +1504,7 @@ internal sealed class PlcTagDIntArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueDIntArray)) == 0)
         {
-            Value = ((ValueDIntArray)obj).GetValue();
+            Value = ((ValueDIntArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1540,8 +1535,7 @@ internal sealed class PlcTagRealArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueRealArray)) == 0)
         {
-            Value = ((ValueRealArray)obj).GetValue();
-
+            Value = ((ValueRealArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1572,8 +1566,7 @@ internal sealed class PlcTagUSIntArray(string name, ItemAddress address, uint so
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
-            Value = ((ValueUSIntArray)obj).GetValue();
-
+            Value = ((ValueUSIntArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1604,8 +1597,7 @@ internal sealed class PlcTagUIntArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUIntArray)) == 0)
         {
-            Value = ((ValueUIntArray)obj).GetValue();
-
+            Value = ((ValueUIntArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1636,8 +1628,7 @@ internal sealed class PlcTagUDIntArray(string name, ItemAddress address, uint so
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueUDIntArray)) == 0)
         {
-            Value = ((ValueUDIntArray)obj).GetValue();
-
+            Value = ((ValueUDIntArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1668,8 +1659,7 @@ internal sealed class PlcTagSIntArray(string name, ItemAddress address, uint sof
         LastReadError = err;
         if (CheckErrorAndType(err, obj, typeof(ValueSIntArray)) == 0)
         {
-            Value = ((ValueSIntArray)obj).GetValue();
-
+            Value = ((ValueSIntArray)obj).Value;
             Quality = PlcTagQC.TAG_QUALITY_GOOD;
         }
         else
@@ -1728,7 +1718,7 @@ internal sealed class PlcTagDateAndTimeArray : PlcTag
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
             List<DateTime> dateTimes = [];
-            var v = ((ValueUSIntArray)obj).GetValue();
+            var v = ((ValueUSIntArray)obj).Value;
             var pos = 0;
             do
             {
@@ -1838,7 +1828,7 @@ internal sealed class PlcTagStringArray(string name, ItemAddress address, uint s
         if (CheckErrorAndType(err, obj, typeof(ValueUSIntArray)) == 0)
         {
             List<string> strings = [];
-            var v = ((ValueUSIntArray)obj).GetValue();
+            var v = ((ValueUSIntArray)obj).Value;
             var pos = 0;
             do
             {
@@ -1850,7 +1840,6 @@ internal sealed class PlcTagStringArray(string name, ItemAddress address, uint s
                 var str = Encoding.GetEncoding(m_Encoding).GetString(v, pos + 2, act_len);
                 strings.Add(str);
                 pos += max_len + 2;
-
             } while (pos < v.Length);
             Value = [.. strings];
             Quality = PlcTagQC.TAG_QUALITY_GOOD;

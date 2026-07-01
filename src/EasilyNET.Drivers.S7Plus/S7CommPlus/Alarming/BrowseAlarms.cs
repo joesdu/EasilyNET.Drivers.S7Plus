@@ -73,11 +73,11 @@ internal sealed partial class S7CommPlusConnection
             {
                 if (stais.GetType() == typeof(ValueBlobSparseArray))
                 {
-                    var dict = ((ValueBlobSparseArray)stais).GetValue();
+                    var dict = ((ValueBlobSparseArray)stais).Value;
                     foreach (var entry in dict)
                     {
                         var alarm = new AlarmData(0x8a7e0000); // TODO: Get this from parent object?
-                        Stream buffer = new MemoryStream(entry.Value.value);
+                        Stream buffer = new MemoryStream(entry.Value.Value);
                         alarm.Deserialize(buffer);
                         Alarms.Add(alarm.CpuAlarmId, alarm);
                     }
@@ -144,11 +144,11 @@ internal sealed partial class S7CommPlusConnection
                 {
                     if (stais.GetType() == typeof(ValueBlobSparseArray))
                     {
-                        var dict = ((ValueBlobSparseArray)stais).GetValue();
+                        var dict = ((ValueBlobSparseArray)stais).Value;
                         foreach (var entry in dict)
                         {
                             var alarm = new AlarmData(ob.RelationId);
-                            Stream buffer = new MemoryStream(entry.Value.value);
+                            Stream buffer = new MemoryStream(entry.Value.Value);
 
                             alarm.Deserialize(buffer);
                             Alarms.Add(alarm.CpuAlarmId, alarm);
@@ -204,12 +204,12 @@ internal sealed partial class S7CommPlusConnection
         ValueBlob[]? tloa = null;
         byte[]? tlsa = null;
         var textlib = exploreRes.Objects.First(o => o.ClassId == Ids.TextLibraryClassRID);
-        tloa = ((ValueBlobArray)textlib.GetAttribute(Ids.TextLibraryOffsetArea)).GetValue();
-        tlsa = ((ValueBlob)textlib.GetAttribute(Ids.TextLibraryStringArea)).GetValue();
+        tloa = ((ValueBlobArray)textlib.GetAttribute(Ids.TextLibraryOffsetArea)).Value;
+        tlsa = ((ValueBlob)textlib.GetAttribute(Ids.TextLibraryStringArea)).Value;
 
-        var tloa_1 = tloa[0].GetValue();
-        var tloa_2 = tloa[1].GetValue();
-        var tloa_3 = tloa[2].GetValue();
+        var tloa_1 = tloa[0].Value;
+        var tloa_2 = tloa[1].Value;
+        var tloa_3 = tloa[2].Value;
 
         GetTexts(tloa_1, tloa_2, tloa_3, tlsa, Alarms, languageId);
 

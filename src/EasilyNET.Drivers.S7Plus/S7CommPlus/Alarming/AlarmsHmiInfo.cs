@@ -116,7 +116,7 @@ internal sealed class AlarmsHmiInfo
     {
         ArgumentNullException.ThrowIfNull(blob);
         var hmiinfo = new AlarmsHmiInfo();
-        var barr = blob.GetValue();
+        var barr = blob.Value;
         uint pos = 0;
         hmiinfo.SyntaxId = Utils.GetUInt16(barr, pos);
         pos += 2;

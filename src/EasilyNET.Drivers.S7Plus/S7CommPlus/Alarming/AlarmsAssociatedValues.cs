@@ -41,7 +41,7 @@ internal sealed class AlarmsAssociatedValues
     {
         ArgumentNullException.ThrowIfNull(blob, nameof(blob));
         var av = new AlarmsAssociatedValues();
-        var blobs = blob.GetValue();
+        var blobs = blob.Value;
         // Comes as Array[17], with indices:
         // 0 = Unknown Typeinformation, 4 Bytes
         // 1..10 = SD_1..SD_10
@@ -56,7 +56,7 @@ internal sealed class AlarmsAssociatedValues
         AssociatedValue pv;
         foreach (var b in blobs)
         {
-            var bytes = b.GetValue();
+            var bytes = b.Value;
             switch (b.BlobRootId)
             {
                 case Ids.TI_BOOL:

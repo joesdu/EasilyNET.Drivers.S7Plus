@@ -77,7 +77,7 @@ internal sealed class SystemEvent(byte protocolVersion)
                 var str = (ValueStruct)Data;
                 var retval = (ValueLInt)str.GetStructElement(Ids.ReturnValue);
                 // It's just guess that if the value is negative, then it's a fatal error and we need to disconnect
-                return retval.GetValue() < 0;
+                return retval.Value < 0;
             }
             catch
             {

@@ -71,7 +71,7 @@ internal sealed class CommRessources
         {
             if (values[i] != null && errors[i] == 0)
             {
-                var v = ((ValueDInt)values[i]!).GetValue();
+                var v = ((ValueDInt)values[i]!).Value;
                 switch (i)
                 {
                     case 0:
@@ -133,7 +133,7 @@ internal sealed class CommRessources
         {
             if (values[i] != null && errors[i] == 0)
             {
-                var v = ((ValueDInt)values[i]!).GetValue();
+                var v = ((ValueDInt)values[i]!).Value;
                 switch (i)
                 {
                     case 0:

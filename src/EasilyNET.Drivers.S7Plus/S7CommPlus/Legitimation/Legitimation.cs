@@ -45,7 +45,7 @@ internal sealed partial class S7CommPlusConnection
         //      • PCs with WinCC RT Professional.
         //      • WinCC Unified PCs and Comfort Panels.
         //  In addition, SINAMICS RT SW, as of version V6.1, and STARTDRIVE, as of version V17, support secure communication
-        var sessionVersionPAOMString = ((ValueWString)serverSession.GetStructElement(Ids.LID_SessionVersionSystemPAOMString)).GetValue();
+        var sessionVersionPAOMString = ((ValueWString)serverSession.GetStructElement(Ids.LID_SessionVersionSystemPAOMString)).Value;
         var m = IsVersionedRecord.Match(sessionVersionPAOMString);
         if (!m.Success)
         {
@@ -142,7 +142,7 @@ internal sealed partial class S7CommPlusConnection
         }
 
         // Check access level
-        var accessLevel = (getVarSubstreamedRes.Value as ValueUDInt)!.GetValue();
+        var accessLevel = (getVarSubstreamedRes.Value as ValueUDInt)!.Value;
         if (accessLevel > AccessLevel.FullAccess && !string.IsNullOrEmpty(password))
         {
             // Legitimate
@@ -194,7 +194,7 @@ internal sealed partial class S7CommPlusConnection
             return S7Consts.errIsoInvalidPDU;
         }
 
-        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray)!.GetValue();
+        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray)!.Value;
 
         // Encrypt challengeResponse
         byte[] challengeResponse;
@@ -338,7 +338,7 @@ internal sealed partial class S7CommPlusConnection
             return S7Consts.errIsoInvalidPDU;
         }
 
-        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray)!.GetValue();
+        var challenge = (getVarSubstreamedRes_challenge.Value as ValueUSIntArray)!.Value;
 
         // Calculate challengeResponse [sha1(password) xor challenge]
         byte[] challengeResponse;

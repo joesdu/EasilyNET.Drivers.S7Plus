@@ -641,7 +641,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         // the response gives no error.
         if (deleteObjectId == m_SessionId)
         {
-            var delObjRes = DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, false);
+            DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, false);
             log.LogDebug("S7CommPlusConnection - DeleteSession: Deleted our own Session Id object, not checking the response.");
             m_SessionId = 0; // not valid anymore
             SessionId2 = 0;
@@ -678,14 +678,13 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         // Split request into chunks, taking the MaxTags per request into account
         var chunk_startIndex = 0;
-        var count_perChunk = 0;
         do
         {
             int res;
             var getMultiVarReq = new GetMultiVariablesRequest(ProtocolVersion.V2);
 
             getMultiVarReq.AddressList.Clear();
-            count_perChunk = 0;
+            var count_perChunk = 0;
             while (count_perChunk < m_CommRessources.TagsPerReadRequestMax && (chunk_startIndex + count_perChunk) < addresslist.Count)
             {
                 getMultiVarReq.AddressList.Add(addresslist[chunk_startIndex + count_perChunk]);
@@ -744,13 +743,12 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         // Split request into chunks, taking the MaxTags per request into account
         var chunk_startIndex = 0;
-        var count_perChunk = 0;
         do
         {
             var setMultiVarReq = new SetMultiVariablesRequest(ProtocolVersion.V2);
             setMultiVarReq.AddressListVar.Clear();
             setMultiVarReq.ValueList.Clear();
-            count_perChunk = 0;
+            var count_perChunk = 0;
             while (count_perChunk < m_CommRessources.TagsPerWriteRequestMax && (chunk_startIndex + count_perChunk) < addresslist.Count)
             {
                 setMultiVarReq.AddressListVar.Add(addresslist[chunk_startIndex + count_perChunk]);
@@ -891,9 +889,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                         var name = (ValueWString)ob.GetAttribute(Ids.ObjectVariableTypeName);
                         var data = new BrowseData
                         {
-                            db_block_relid = relid,
-                            db_name = name.GetValue(),
-                            db_number = num
+                            DbBlockRelid = relid,
+                            DbName = name.Value,
+                            DbNumber = num
                         };
                         exploreData.Add(data);
                     }
@@ -913,12 +911,12 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         foreach (var data in exploreData)
         {
-            if (data.db_number > 0) // only process datablocks here, no marker, timer etc.
+            if (data.DbNumber > 0) // only process datablocks here, no marker, timer etc.
             {
                 // Insert the variable address
                 var adr1 = new ItemAddress
                 {
-                    AccessArea = data.db_block_relid,
+                    AccessArea = data.DbBlockRelid,
                     AccessSubArea = Ids.DB_ValueActual
                 };
                 adr1.LID.Add(1);
@@ -941,7 +939,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             {
                 var rid = (ValueRID)values[i]!;
                 var data = exploreData[i];
-                data.db_block_ti_relid = rid.GetValue();
+                data.DbBlockTiRelid = rid.Value;
                 exploreData[i] = data;
             }
             else
@@ -949,17 +947,17 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 // On error, set the relid to zero, will be removed from the list in the next step.
                 // TODO: Report this as an error?
                 var data = exploreData[i];
-                data.db_block_ti_relid = 0;
+                data.DbBlockTiRelid = 0;
                 exploreData[i] = data;
             }
         }
-        // Remove elements with db_block_ti_relid == 0. This occurs e.g. on datablocks only present in load memory.
+        // Remove elements with DbBlockTiRelid == 0. This occurs e.g. on datablocks only present in load memory.
         // The informations can't be used any further (at least not for variable access).
-        exploreData.RemoveAll(item => item.db_block_ti_relid == 0);
+        exploreData.RemoveAll(item => item.DbBlockTiRelid == 0);
 
         foreach (var ed in exploreData)
         {
-            vars.AddBlockNode(ENodeType.Root, ed.db_name, ed.db_block_relid, ed.db_block_ti_relid);
+            vars.AddBlockNode(ENodeType.Root, ed.DbName, ed.DbBlockRelid, ed.DbBlockTiRelid);
         }
 
         // Add IQMCT areas manually
@@ -1301,11 +1299,11 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var sym = new SymbolRef(symbol);
         var levelName = ParseSymbolLevel(sym);
         // find db by first level name of symbol
-        var dbInfo = dbInfoList.Find(dbi => dbi.db_name == levelName);
+        var dbInfo = dbInfoList.Find(dbi => dbi.DbName == levelName);
         if (dbInfo != null)
         {
-            varInfo.AccessSequence = $"{dbInfo.db_block_relid:X}";
-            return await BrowsePlcTagBySymbolAsync(dbInfo.db_block_ti_relid, sym, varInfo, ct).ConfigureAwait(false);
+            varInfo.AccessSequence = $"{dbInfo.DbBlockRelid:X}";
+            return await BrowsePlcTagBySymbolAsync(dbInfo.DbBlockTiRelid, sym, varInfo, ct).ConfigureAwait(false);
         }
         else
         {
@@ -1351,19 +1349,19 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
     internal class BrowseData
     {
-        public string db_name { get; set; } = string.Empty;                                          // Name of the datablock
-        public uint db_number { get; set; }                                        // Number of the datablock
-        public uint db_block_relid { get; set; }                                   // RID of the datablock
-        public uint db_block_ti_relid { get; set; }                                // Type-Info RID of the datablock
-        public List<BrowseEntry> variables { get; private set; } = [];   // Variables inside the datablock
+        public string DbName { get; set; } = string.Empty;                                          // Name of the datablock
+        public uint DbNumber { get; set; }                                        // Number of the datablock
+        public uint DbBlockRelid { get; set; }                                   // RID of the datablock
+        public uint DbBlockTiRelid { get; set; }                                // Type-Info RID of the datablock
+        public List<BrowseEntry> Variables { get; private set; } = [];   // Variables inside the datablock
     };
 
     internal class DatablockInfo
     {
-        public string db_name { get; set; } = string.Empty;                                          // Name of the datablock
-        public uint db_number { get; set; }                                        // Number of the datablock
-        public uint db_block_relid { get; set; }                                   // RID of the datablock
-        public uint db_block_ti_relid { get; set; }                                // Type-Info RID of the datablock
+        public string DbName { get; set; } = string.Empty;                                          // Name of the datablock
+        public uint DbNumber { get; set; }                                        // Number of the datablock
+        public uint DbBlockRelid { get; set; }                                   // RID of the datablock
+        public uint DbBlockTiRelid { get; set; }                                // Type-Info RID of the datablock
     };
 
     internal async Task<(int res, List<DatablockInfo> dbInfoList)> GetListOfDatablocksAsync(CancellationToken ct = default)
@@ -1430,9 +1428,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                         var name = (ValueWString)ob.GetAttribute(Ids.ObjectVariableTypeName);
                         var data = new DatablockInfo
                         {
-                            db_block_relid = relid,
-                            db_name = name.GetValue(),
-                            db_number = num
+                            DbBlockRelid = relid,
+                            DbName = name.Value,
+                            DbNumber = num
                         };
                         dbInfoList.Add(data);
                     }
@@ -1454,12 +1452,12 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
         foreach (var data in dbInfoList)
         {
-            if (data.db_number > 0)
+            if (data.DbNumber > 0)
             {
                 // Insert the address
                 var adr1 = new ItemAddress
                 {
-                    AccessArea = data.db_block_relid,
+                    AccessArea = data.DbBlockRelid,
                     AccessSubArea = Ids.DB_ValueActual
                 };
                 adr1.LID.Add(1);
@@ -1479,7 +1477,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             {
                 var rid = (ValueRID)values[i]!;
                 var data = dbInfoList[i];
-                data.db_block_ti_relid = rid.GetValue();
+                data.DbBlockTiRelid = rid.Value;
                 dbInfoList[i] = data;
             }
             else
@@ -1487,14 +1485,14 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 // On error, set relid=0, which is then removed in the next step.
                 // Should we report this for the user?
                 var data = dbInfoList[i];
-                data.db_block_ti_relid = 0;
+                data.DbBlockTiRelid = 0;
                 dbInfoList[i] = data;
             }
         }
 
-        // Remove elements with db_block_ti_relid == 0.
+        // Remove elements with DbBlockTiRelid == 0.
         // This can occur on datablocks which are only in load memory and can't be explored.
-        dbInfoList.RemoveAll(item => item.db_block_ti_relid == 0);
+        dbInfoList.RemoveAll(item => item.DbBlockTiRelid == 0);
 
         return (0, dbInfoList);
     }
@@ -1608,12 +1606,12 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                         break;
                     case Ids.DataInterface_LineComments:
                         var att_linecomment = (ValueBlobSparseArray)att.Value;
-                        var blob_sp = att_linecomment.GetValue();
+                        var blob_sp = att_linecomment.Value;
                         // In DBs we get the data with Sparsearray key = 1, in M-Area with key = 2.
                         // For now, just take the first, don't know where the key ids are for.
                         foreach (var key in blob_sp.Keys)
                         {
-                            xml_linecomment = BlobDecompressor.Decompress(blob_sp[key].value, 4); // Offset of 4, as we have a header for the zlib dictionary version
+                            xml_linecomment = BlobDecompressor.Decompress(blob_sp[key].Value, 4); // Offset of 4, as we have a header for the zlib dictionary version
                             break;
                         }
                         break;

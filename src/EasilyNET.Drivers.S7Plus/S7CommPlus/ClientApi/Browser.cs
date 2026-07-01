@@ -242,7 +242,7 @@ internal sealed class Browser
                                 if (ob.RelationId == ioit2.GetRelationId())
                                 {
                                     // Get the size of a struct element
-                                    TComSize = ((ValueUDInt)ob.GetAttribute(Ids.TI_TComSize)).GetValue();
+                                    TComSize = ((ValueUDInt)ob.GetAttribute(Ids.TI_TComSize)).Value;
                                     arraynode.ArrayAdrOffsetOpt = i * TComSize;
                                     arraynode.ArrayAdrOffsetNonOpt = i * TComSize;
 
@@ -327,7 +327,7 @@ internal sealed class Browser
                             foreach (var ob in m_objs.Where(ob => ob.RelationId == ioit2.GetRelationId()))
                             {
                                 // Get the size of a struct element
-                                TComSize = ((ValueUDInt)ob.GetAttribute(Ids.TI_TComSize)).GetValue();
+                                TComSize = ((ValueUDInt)ob.GetAttribute(Ids.TI_TComSize)).Value;
                                 arraynode.ArrayAdrOffsetOpt = (n - 1) * TComSize;
                                 arraynode.ArrayAdrOffsetNonOpt = (n - 1) * TComSize;
 

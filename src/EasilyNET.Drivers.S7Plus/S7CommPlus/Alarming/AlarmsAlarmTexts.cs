@@ -34,7 +34,7 @@ internal sealed class AlarmsAlarmTexts
         at.LanguageId = languageId;
         foreach (var v in blob.Value)
         {
-            s = Utils.GetUtfString(v.Value.value, 0, (uint)v.Value.value.Length);
+            s = Utils.GetUtfString(v.Value.Value, 0, (uint)v.Value.Value.Length);
             // Values in older CPUs, from: 0xa09c8001..0xa09c800b (2694610945..2694610955)
             // Current CPUs use:           0x04070001..0x0407000b (  67567617..  67567627)
             // Where the left word is the language ID, 0x0407 = 1031, and the right word is the text id.

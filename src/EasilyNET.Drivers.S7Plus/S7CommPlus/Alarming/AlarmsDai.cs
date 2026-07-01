@@ -39,14 +39,14 @@ internal sealed class AlarmsDai
         ArgumentNullException.ThrowIfNull(pobj, nameof(pobj));
         var dai = new AlarmsDai
         {
-            ObjectVariableTypeName = ((ValueWString)pobj.GetAttribute(Ids.ObjectVariableTypeName)).GetValue(),
-            CpuAlarmId = ((ValueLWord)pobj.GetAttribute(Ids.DAI_CPUAlarmID)).GetValue(),
-            AllStatesInfo = ((ValueUSInt)pobj.GetAttribute(Ids.DAI_AllStatesInfo)).GetValue(),
-            AlarmDomain = ((ValueUInt)pobj.GetAttribute(Ids.DAI_AlarmDomain)).GetValue(),
-            MessageType = ((ValueDInt)pobj.GetAttribute(Ids.DAI_MessageType)).GetValue(),
+            ObjectVariableTypeName = ((ValueWString)pobj.GetAttribute(Ids.ObjectVariableTypeName)).Value,
+            CpuAlarmId = ((ValueLWord)pobj.GetAttribute(Ids.DAI_CPUAlarmID)).Value,
+            AllStatesInfo = ((ValueUSInt)pobj.GetAttribute(Ids.DAI_AllStatesInfo)).Value,
+            AlarmDomain = ((ValueUInt)pobj.GetAttribute(Ids.DAI_AlarmDomain)).Value,
+            MessageType = ((ValueDInt)pobj.GetAttribute(Ids.DAI_MessageType)).Value,
             HmiInfo = AlarmsHmiInfo.FromValueBlob((ValueBlob)pobj.GetAttribute(Ids.DAI_HmiInfo)),
             // TODO: Blob for additional values
-            SequenceCounter = ((ValueUDInt)pobj.GetAttribute(Ids.DAI_SequenceCounter)).GetValue()
+            SequenceCounter = ((ValueUDInt)pobj.GetAttribute(Ids.DAI_SequenceCounter)).Value
         };
         ValueStruct? str = null;
         uint dai_id = 0;
