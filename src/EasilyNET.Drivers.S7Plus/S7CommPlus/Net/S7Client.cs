@@ -394,9 +394,10 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
             var pending = new[] { m_receiveLoop, m_sendLoop }.Where(t => t is not null).Cast<Task>().ToArray();
             if (pending.Length > 0)
             {
-                await Task.WhenAny(Task.WhenAll(pending), Task.Delay(2000)).ConfigureAwait(false);
+                await Task.WhenAll(pending).WaitAsync(TimeSpan.FromSeconds(2)).ConfigureAwait(false);
             }
         }
+        catch (TimeoutException) { /* 超时后继续关闭 */ }
         catch { /* 关闭期间忽略 */ }
         Socket?.Close();
         Socket = null;
