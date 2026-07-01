@@ -47,7 +47,12 @@ public sealed class S7PlusClient : IAsyncDisposable
     // 按需懒解析，断开时清空；避免连接后对整个 PLC 做全量 Browse。
     // 值为 null 表示该符号在当前连接中解析失败（未找到），本连接周期内不再重复解析。
     private readonly ConcurrentDictionary<string, PlcTag?> resolvedCache = new(StringComparer.OrdinalIgnoreCase);
+#pragma warning disable IDE0079 // 请删除不必要的忽略
+    // CA2213 误报：该字段在 DisposeAsync 中通过 Interlocked.Exchange(ref connection, null) 搬到局部变量后 DisposeAsync 释放，
+    // 分析器无法追踪这层原子交换的间接释放。此模式是为防止多路径并发下的重复释放/竞态而刻意保留，不能改为直接对字段调用。
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2213:Disposable fields should be disposed", Justification = "Disposed in DisposeAsync via Interlocked.Exchange to a local; thread-safe by design.")]
     private S7CommPlusConnection? connection;
+#pragma warning restore IDE0079 // 请删除不必要的忽略
     private volatile bool isConnected;
     private bool disposed;
 
