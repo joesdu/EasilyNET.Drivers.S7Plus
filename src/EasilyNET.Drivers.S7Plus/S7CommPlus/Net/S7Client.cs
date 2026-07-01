@@ -83,7 +83,7 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
         catch (Exception ex)
         {
             m_SslActive = false;
-            log.LogDebug("S7Client - SslActivate: error = " + ex.Message);
+            log.LogDebug(ex, "S7Client - SslActivate: error = {ErrorMessage}", ex.Message);
             return S7Consts.errOpenSSL;
         }
         return 0;
@@ -287,7 +287,7 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
                         catch (Exception ex)
                         {
                             // TLS 握手/解密异常（如 PLC 发回 TLS Alert）。记录后停止接收泵，触发上层重连。
-                            log.LogDebug("S7Client - ReceiveLoop: TLS error = " + ex);
+                            log.LogDebug(ex, "S7Client - ReceiveLoop: TLS error = {ErrorMessage}", ex.Message);
                             break;
                         }
                     }

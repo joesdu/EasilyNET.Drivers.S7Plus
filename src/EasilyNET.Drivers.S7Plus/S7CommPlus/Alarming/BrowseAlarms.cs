@@ -261,7 +261,7 @@ internal sealed partial class S7CommPlusConnection
                 // Check if we have the key stored from response data before, to have storage where we can put the Text information in
                 if (!Alarms.ContainsKey(cpualarmid))
                 {
-                    log.LogDebug($"BrowseAlarms GetTexts(): CPU Alarm Id {cpualarmid:X} is not in dictionary!");
+                    log.LogDebug("BrowseAlarms GetTexts(): CPU Alarm Id {CpuAlarmId:X} is not in dictionary!", cpualarmid);
                     continue;
                 }
                 Alarms[cpualarmid].AlText.LanguageId = languageId;

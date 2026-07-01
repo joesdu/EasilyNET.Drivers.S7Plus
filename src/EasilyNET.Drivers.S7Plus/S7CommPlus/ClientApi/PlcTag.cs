@@ -39,12 +39,12 @@ internal abstract class PlcTag(string name, ItemAddress address, uint softdataty
         int res;
         if (error != 0)
         {
-            S7Log.Instance?.LogDebug("CheckErrorAndType(): error=" + error);
+            S7Log.Instance?.LogDebug("CheckErrorAndType(): error={Error}", error);
             res = -1;
         }
         else if (valueObj.GetType() != checkType)
         {
-            S7Log.Instance?.LogDebug($"CheckErrorAndType(): Type of value is not as excpected. Expected: {checkType} Received: {valueObj.GetType()}.");
+            S7Log.Instance?.LogDebug("CheckErrorAndType(): Type of value is not as excpected. Expected: {ExpectedType} Received: {ActualType}.", checkType, valueObj.GetType());
             res = -1;
         }
         else

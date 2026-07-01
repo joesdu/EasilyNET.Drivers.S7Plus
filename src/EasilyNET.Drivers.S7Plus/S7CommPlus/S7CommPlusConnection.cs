@@ -149,7 +149,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 return;
             }
             // 序列号不符：上一请求超时后迟到的陈旧响应，丢弃并继续等待本次响应
-            log.LogDebug($"S7CommPlusConnection - WaitForNewS7plusReceived: discarding stale response seq={item.Value.Seq}, expected {m_pendingResponseSeq}");
+            log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: discarding stale response seq={Seq}, expected {PendingResponseSeq}", item.Value.Seq, m_pendingResponseSeq);
             item.Value.Pdu.Dispose();
         }
     }
@@ -409,7 +409,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
     private void PrintBuf(byte[] b)
     {
-        log.LogDebug(string.Join(" ", b.Select(x => $"0x{x:X02}")));
+        log.LogDebug("Received bytes: {Bytes}", string.Join(" ", b.Select(x => "0x" + x.ToString("X02"))));
     }
 
     private int CheckResponseWithIntegrity(IS7pRequest request, IS7pResponse? response)
@@ -421,14 +421,14 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
         if (request.SequenceNumber != response.SequenceNumber)
         {
-            log.LogDebug($"checkResponseWithIntegrity: ERROR! SeqenceNumber of Response ({response.SequenceNumber}) doesn't match Request ({request.SequenceNumber})");
+            log.LogDebug("checkResponseWithIntegrity: ERROR! SeqenceNumber of Response ({ResponseSequenceNumber}) doesn't match Request ({RequestSequenceNumber})", response.SequenceNumber, request.SequenceNumber);
             return S7Consts.errIsoInvalidPDU;
         }
         // Overflow is possible and allowed
         var reqIntegCheck = request.SequenceNumber + request.IntegrityId;
         if (response.IntegrityId != reqIntegCheck)
         {
-            log.LogDebug($"checkResponseWithIntegrity: ERROR! IntegrityId of the Response ({response.IntegrityId}) doesn't match Request ({reqIntegCheck})");
+            log.LogDebug("checkResponseWithIntegrity: ERROR! IntegrityId of the Response ({ResponseIntegrityId}) doesn't match Request ({RequestIntegrityId})", response.IntegrityId, reqIntegCheck);
             // Don't return this as error so far
         }
         return 0;
@@ -542,7 +542,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         // Usually the first is used for polling data, and the 2nd for jobs which use notifications, e.g. alarming, subscriptions.
         m_SessionId = createObjRes.ObjectIds![0];
         SessionId2 = createObjRes.ObjectIds[1];
-        log.LogDebug("S7CommPlusConnection - Connect: Using SessionId=0x" + $"{m_SessionId:X04}");
+        log.LogDebug("S7CommPlusConnection - Connect: Using SessionId=0x{SessionId:X04}", m_SessionId);
 
         // Evaluate Struct 314
         var sval = createObjRes.ResponseObject!.GetAttribute(Ids.ServerSessionVersion);
@@ -597,7 +597,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         #endregion
 
         // If everything has been error-free up to this point, then the connection has been established successfully.
-        log.LogDebug($"S7CommPlusConnection - Connect: Time for connection establishment: {Environment.TickCount - Elapsed} ms.");
+        log.LogDebug("S7CommPlusConnection - Connect: Time for connection establishment: {ElapsedMilliseconds} ms.", Environment.TickCount - Elapsed);
         return 0;
     }
 
@@ -656,7 +656,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             }
             if (delObjRes!.ReturnValue != 0)
             {
-                log.LogDebug($"S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={delObjRes.ReturnValue}");
+                log.LogDebug("S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={ReturnValue}", delObjRes.ReturnValue);
                 res = -1;
             }
         }
@@ -708,7 +708,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             // ReturnValue shows also an error, if only one single variable could not be read
             if (getMultiVarRes!.ReturnValue != 0)
             {
-                log.LogDebug($"S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={getMultiVarRes.ReturnValue}");
+                log.LogDebug("S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={ReturnValue}", getMultiVarRes.ReturnValue);
             }
 
             // TODO: If a variable could not be read, there is no value, but there is an ErrorValue.
@@ -777,7 +777,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             // ReturnValue shows also an error, if only one single variable could not be written
             if (setMultiVarRes!.ReturnValue != 0)
             {
-                log.LogDebug($"S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={setMultiVarRes.ReturnValue}");
+                log.LogDebug("S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={ReturnValue}", setMultiVarRes.ReturnValue);
             }
 
             foreach (var ev in setMultiVarRes.ErrorValues)

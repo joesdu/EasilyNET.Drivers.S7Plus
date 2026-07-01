@@ -61,7 +61,7 @@ internal sealed partial class S7CommPlusConnection
             var parts = firmwareVersion.Split('.');
             if (parts.Length < 2 || !int.TryParse(parts[0], out var major) || !int.TryParse(parts[1], out var minor))
             {
-                log.LogDebug($"S7CommPlusConnection - Legitimate: Invalid firmware format: {firmwareVersion}");
+                log.LogDebug("S7CommPlusConnection - Legitimate: Invalid firmware format: {FirmwareVersion}", firmwareVersion);
                 return S7Consts.errCliFirmwareNotSupported;
             }
             fwVerNo = (major * 100) + minor;

@@ -113,7 +113,7 @@ internal sealed partial class S7CommPlusConnection
         {
             // If creating a subscription fails, the object is still created and should be deleted.
             // At least deleting it, gives no error.
-            log.LogDebug($"AlarmSubscription - Create: Failed with Returnvalue = 0x{createObjRes.ReturnValue:X8}");
+            log.LogDebug("AlarmSubscription - Create: Failed with Returnvalue = 0x{ReturnValue:X8}", createObjRes.ReturnValue);
             res = S7Consts.errCliInvalidParams;
         }
 
@@ -127,7 +127,7 @@ internal sealed partial class S7CommPlusConnection
 
         for (var i = 1; i <= untilNumberOfAlarms; i++)
         {
-            log.LogDebug($"{Environment.NewLine}WaitForAlarmNotifications(): *** Loop #{i} ***");
+            log.LogDebug("{NewLine}WaitForAlarmNotifications(): *** Loop #{LoopIndex} ***", Environment.NewLine, i);
             m_LastError = 0;
             await WaitForNotificationAsync(waitTimeout, ct);
             if (m_LastError != 0)
@@ -143,18 +143,18 @@ internal sealed partial class S7CommPlusConnection
             }
             else
             {
-                log.LogDebug($"Notification: CreditTick={noti.NotificationCreditTick} SequenceNumber={noti.NotificationSequenceNumber} PLC-Timestamp={noti.Add1Timestamp}.{noti.Add1Timestamp.Millisecond:D03}");
+                log.LogDebug("Notification: CreditTick={CreditTick} SequenceNumber={SequenceNumber} PLC-Timestamp={Timestamp}.{Millisecond:D03}", noti.NotificationCreditTick, noti.NotificationSequenceNumber, noti.Add1Timestamp, noti.Add1Timestamp.Millisecond);
 
                 var dai = AlarmsDai.FromNotificationObject(noti.P2Objects[0], alarmTextsLanguageId);
                 if (dai != null)
                 {
-                    log.LogDebug(dai.ToString());
+                    log.LogDebug("AlarmData: {AlarmData}", dai.ToString());
                 }
                 if (noti.NotificationCreditTick >= m_AlarmNextCreditLimit - 1) // Set new limit one tick before it expires, to get a constant flow of data
                 {
                     // CreditTick in Notification is only one byte
                     m_AlarmNextCreditLimit = (short)((m_AlarmNextCreditLimit + creditLimitStep) % 255);
-                    log.LogDebug($"--> Credit limit of {noti.NotificationCreditTick} reached. SetCreditLimit to {m_AlarmNextCreditLimit}");
+                    log.LogDebug("--> Credit limit of {CreditTick} reached. SetCreditLimit to {CreditLimit}", noti.NotificationCreditTick, m_AlarmNextCreditLimit);
                     SubscriptionSetCreditLimit(m_AlarmNextCreditLimit);
                 }
             }
@@ -165,7 +165,7 @@ internal sealed partial class S7CommPlusConnection
     public async Task<int> AlarmSubscriptionDeleteAsync(CancellationToken ct = default)
     {
         int res;
-        log.LogDebug($"SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}");
+        log.LogDebug("SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}", SessionId2);
         res = await DeleteObjectAsync(SessionId2, ct).ConfigureAwait(false);
         return res;
     }

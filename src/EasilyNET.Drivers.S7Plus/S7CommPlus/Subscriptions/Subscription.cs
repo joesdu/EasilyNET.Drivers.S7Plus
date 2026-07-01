@@ -117,7 +117,7 @@ internal sealed partial class S7CommPlusConnection
         {
             // If creating a subscription fails, the object is still created and should be deleted.
             // At least deleting it, gives no error.
-            log.LogDebug($"Subscription - Create: Failed with Returnvalue = 0x{createObjRes.ReturnValue:X8}");
+            log.LogDebug("Subscription - Create: Failed with Returnvalue = 0x{ReturnValue:X8}", createObjRes.ReturnValue);
             res = S7Consts.errCliInvalidParams;
         }
         return res;
@@ -185,7 +185,7 @@ internal sealed partial class S7CommPlusConnection
 
         for (var i = 1; i <= untilNumberOfNotifications; i++)
         {
-            log.LogDebug($"{Environment.NewLine}WaitForNotifications(): *** Loop #{i} ***");
+            log.LogDebug("{NewLine}WaitForNotifications(): *** Loop #{LoopIndex} ***", Environment.NewLine, i);
             m_LastError = 0;
             await WaitForNotificationAsync(5000, ct);
             if (m_LastError != 0)
@@ -201,10 +201,10 @@ internal sealed partial class S7CommPlusConnection
             }
             else
             {
-                log.LogDebug($"Notification: CreditTick={noti.NotificationCreditTick} SequenceNumber={noti.NotificationSequenceNumber} PLC-Timestamp={noti.Add1Timestamp}.{noti.Add1Timestamp.Millisecond:D03} ValuesCount={noti.Values.Count}");
+                log.LogDebug("Notification: CreditTick={CreditTick} SequenceNumber={SequenceNumber} PLC-Timestamp={Timestamp}.{Millisecond:D03} ValuesCount={ValuesCount}", noti.NotificationCreditTick, noti.NotificationSequenceNumber, noti.Add1Timestamp, noti.Add1Timestamp.Millisecond, noti.Values.Count);
                 foreach (var v in noti.Values)
                 {
-                    log.LogDebug($"---> key={v.Key} value={v.Value}");
+                    log.LogDebug("---> key={Key} value={Value}", v.Key, v.Value);
                     // Error value in tags expects a 64 bit value, in subscriptions it's only 1 byte (for it's not known what all values are for -> TODO)
                     // 未知 item-reference id（如告警/额外项）不应抛 KeyNotFoundException 中断整个通知处理
                     if (m_SubscribedTags.TryGetValue(v.Key, out var subTag))
@@ -213,7 +213,7 @@ internal sealed partial class S7CommPlusConnection
                     }
                     else
                     {
-                        log.LogDebug($"Notification: unknown item reference id {v.Key}, skipped");
+                        log.LogDebug("Notification: unknown item reference id {Key}, skipped", v.Key);
                     }
                 }
 
@@ -226,7 +226,7 @@ internal sealed partial class S7CommPlusConnection
                     {
                         m_NextCreditLimit = (short)creditLimitStep;
                     }
-                    log.LogDebug($"--> Credit limit of {noti.NotificationCreditTick} reached. SetCreditLimit to {m_NextCreditLimit}");
+                    log.LogDebug("--> Credit limit of {CreditTick} reached. SetCreditLimit to {CreditLimit}", noti.NotificationCreditTick, m_NextCreditLimit);
                     SubscriptionSetCreditLimit(m_NextCreditLimit);
                 }
             }
@@ -239,7 +239,7 @@ internal sealed partial class S7CommPlusConnection
         int res;
         m_SubscribedTags.Clear();
         m_SubscriptionObjectId = 0;
-        log.LogDebug($"SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}");
+        log.LogDebug("SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}", SessionId2);
         res = await DeleteObjectAsync(SessionId2, ct).ConfigureAwait(false);
         return res;
     }
