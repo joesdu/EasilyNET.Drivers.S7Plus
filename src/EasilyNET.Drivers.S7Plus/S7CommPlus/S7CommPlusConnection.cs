@@ -131,7 +131,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             }
             catch (OperationCanceledException)
             {
-                log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: ERROR: Timeout!");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: ERROR: Timeout!");
+                }
                 if (m_LastError == 0) { m_LastError = S7Consts.errTCPDataReceive; }
                 return;
             }
@@ -149,7 +152,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 return;
             }
             // 序列号不符：上一请求超时后迟到的陈旧响应，丢弃并继续等待本次响应
-            log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: discarding stale response seq={Seq}, expected {PendingResponseSeq}", item.Value.Seq, m_pendingResponseSeq);
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - WaitForNewS7plusReceived: discarding stale response seq={Seq}, expected {PendingResponseSeq}", item.Value.Seq, m_pendingResponseSeq);
+            }
             item.Value.Pdu.Dispose();
         }
     }
@@ -323,7 +329,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             // As we don't have a trailer on this types, it's not possible that they are transmitted as fragments.
             if (protoVersion == ProtocolVersion.SystemEvent)
             {
-                log.LogDebug("S7CommPlusConnection - OnDataReceived: ProtocolVersion 0xfe SystemEvent received");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - OnDataReceived: ProtocolVersion 0xfe SystemEvent received");
+                }
                 m_ReceivedTempPDU.Write(PDU, pos, s7HeaderDataLen);
                 // Create SystemEventObject
                 m_ReceivedNeedMoreDataForCompletePDU = false;
@@ -333,7 +342,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 var sysevt = SystemEvent.DeserializeFromPdu(m_ReceivedTempPDU);
                 if (sysevt?.IsFatalError() == true)
                 {
-                    log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent has fatal error");
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent has fatal error");
+                    }
                     // Termination neccessary：置错误并唤醒等待者（无 PDU 入队）。
                     // 释放两个信号量：无论当前等待的是响应还是通知都能立即返回错误（连接随后会被丢弃重连）。
                     m_LastError = S7Consts.errIsoInvalidPDU;
@@ -342,7 +354,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
                 }
                 else
                 {
-                    log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent with non fatal error, do nothing");
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("S7CommPlusConnection - OnDataReceived: SystemEvent with non fatal error, do nothing");
+                    }
                 }
             }
             else
@@ -409,26 +424,38 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
 
     private void PrintBuf(byte[] b)
     {
-        log.LogDebug("Received bytes: {Bytes}", string.Join(" ", b.Select(x => "0x" + x.ToString("X02"))));
+        if (log.IsEnabled(LogLevel.Debug))
+        {
+            log.LogDebug("Received bytes: {Bytes}", string.Join(" ", b.Select(x => "0x" + x.ToString("X02"))));
+        }
     }
 
     private int CheckResponseWithIntegrity(IS7pRequest request, IS7pResponse? response)
     {
         if (response == null)
         {
-            log.LogDebug("checkResponseWithIntegrity: ERROR! response == null");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("checkResponseWithIntegrity: ERROR! response == null");
+            }
             return S7Consts.errIsoInvalidPDU;
         }
         if (request.SequenceNumber != response.SequenceNumber)
         {
-            log.LogDebug("checkResponseWithIntegrity: ERROR! SeqenceNumber of Response ({ResponseSequenceNumber}) doesn't match Request ({RequestSequenceNumber})", response.SequenceNumber, request.SequenceNumber);
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("checkResponseWithIntegrity: ERROR! SeqenceNumber of Response ({ResponseSequenceNumber}) doesn't match Request ({RequestSequenceNumber})", response.SequenceNumber, request.SequenceNumber);
+            }
             return S7Consts.errIsoInvalidPDU;
         }
         // Overflow is possible and allowed
         var reqIntegCheck = request.SequenceNumber + request.IntegrityId;
         if (response.IntegrityId != reqIntegCheck)
         {
-            log.LogDebug("checkResponseWithIntegrity: ERROR! IntegrityId of the Response ({ResponseIntegrityId}) doesn't match Request ({RequestIntegrityId})", response.IntegrityId, reqIntegCheck);
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("checkResponseWithIntegrity: ERROR! IntegrityId of the Response ({ResponseIntegrityId}) doesn't match Request ({RequestIntegrityId})", response.IntegrityId, reqIntegCheck);
+            }
             // Don't return this as error so far
         }
         return 0;
@@ -493,11 +520,17 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var sslRes = InitSslResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (sslRes == null)
         {
-            log.LogDebug("S7CommPlusConnection - Connect: InitSslResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Connect: InitSslResponse with Error!");
+            }
             m_client.Disconnect();
             return m_LastError;
         }
-        log.LogDebug("S7CommPlusConnection - Connect: Step1 InitSSL OK (plaintext). Activating TLS...");
+        if (log.IsEnabled(LogLevel.Debug))
+        {
+            log.LogDebug("S7CommPlusConnection - Connect: Step1 InitSSL OK (plaintext). Activating TLS...");
+        }
 
         #endregion
 
@@ -509,7 +542,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             m_client.Disconnect();
             return res;
         }
-        log.LogDebug("S7CommPlusConnection - Connect: Step2 TLS activated, ClientHello sent. Sending CreateObjectRequest...");
+        if (log.IsEnabled(LogLevel.Debug))
+        {
+            log.LogDebug("S7CommPlusConnection - Connect: Step2 TLS activated, ClientHello sent. Sending CreateObjectRequest...");
+        }
 
         #endregion
 
@@ -534,7 +570,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var createObjRes = CreateObjectResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (createObjRes == null)
         {
-            log.LogDebug("S7CommPlusConnection - Connect: CreateObjectResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Connect: CreateObjectResponse with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -542,7 +581,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         // Usually the first is used for polling data, and the 2nd for jobs which use notifications, e.g. alarming, subscriptions.
         m_SessionId = createObjRes.ObjectIds![0];
         SessionId2 = createObjRes.ObjectIds[1];
-        log.LogDebug("S7CommPlusConnection - Connect: Using SessionId=0x{SessionId:X04}", m_SessionId);
+        if (log.IsEnabled(LogLevel.Debug))
+        {
+            log.LogDebug("S7CommPlusConnection - Connect: Using SessionId=0x{SessionId:X04}", m_SessionId);
+        }
 
         // Evaluate Struct 314
         var sval = createObjRes.ResponseObject!.GetAttribute(Ids.ServerSessionVersion);
@@ -571,7 +613,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var setMultiVarRes = SetMultiVariablesResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (setMultiVarRes == null)
         {
-            log.LogDebug("S7CommPlusConnection - Connect: SetMultiVariablesResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Connect: SetMultiVariablesResponse with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -597,7 +642,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         #endregion
 
         // If everything has been error-free up to this point, then the connection has been established successfully.
-        log.LogDebug("S7CommPlusConnection - Connect: Time for connection establishment: {ElapsedMilliseconds} ms.", Environment.TickCount - Elapsed);
+        if (log.IsEnabled(LogLevel.Debug))
+        {
+            log.LogDebug("S7CommPlusConnection - Connect: Time for connection establishment: {ElapsedMilliseconds} ms.", Environment.TickCount - Elapsed);
+        }
         return 0;
     }
 
@@ -611,7 +659,13 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             await DeleteObjectAsync(m_SessionId, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { /* 取消：直接关闭 */ }
-        catch (Exception ex) { log.LogDebug(ex, "S7CommPlusConnection - Disconnect: DeleteObject error"); }
+        catch (Exception ex)
+        {
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug(ex, "S7CommPlusConnection - Disconnect: DeleteObject error");
+            }
+        }
         m_client.Disconnect();
     }
 
@@ -642,7 +696,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         if (deleteObjectId == m_SessionId)
         {
             DeleteObjectResponse.DeserializeFromPdu(m_ReceivedPDU, false);
-            log.LogDebug("S7CommPlusConnection - DeleteSession: Deleted our own Session Id object, not checking the response.");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - DeleteSession: Deleted our own Session Id object, not checking the response.");
+            }
             m_SessionId = 0; // not valid anymore
             SessionId2 = 0;
         }
@@ -656,7 +713,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             }
             if (delObjRes!.ReturnValue != 0)
             {
-                log.LogDebug("S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={ReturnValue}", delObjRes.ReturnValue);
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - DeleteSession: Executed with Error! ReturnValue={ReturnValue}", delObjRes.ReturnValue);
+                }
                 res = -1;
             }
         }
@@ -708,7 +768,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             // ReturnValue shows also an error, if only one single variable could not be read
             if (getMultiVarRes!.ReturnValue != 0)
             {
-                log.LogDebug("S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={ReturnValue}", getMultiVarRes.ReturnValue);
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - ReadValues: Executed with Error! ReturnValue={ReturnValue}", getMultiVarRes.ReturnValue);
+                }
             }
 
             // TODO: If a variable could not be read, there is no value, but there is an ErrorValue.
@@ -777,7 +840,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
             // ReturnValue shows also an error, if only one single variable could not be written
             if (setMultiVarRes!.ReturnValue != 0)
             {
-                log.LogDebug("S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={ReturnValue}", setMultiVarRes.ReturnValue);
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - WriteValues: Write with errors. ReturnValue={ReturnValue}", setMultiVarRes.ReturnValue);
+                }
             }
 
             foreach (var ev in setMultiVarRes.ErrorValues)
@@ -818,7 +884,10 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         var setVarRes = SetVariableResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (setVarRes == null)
         {
-            log.LogDebug("S7CommPlusConnection - Connect: SetVariableResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Connect: SetVariableResponse with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }

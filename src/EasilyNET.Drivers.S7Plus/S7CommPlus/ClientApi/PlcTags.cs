@@ -26,7 +26,11 @@ internal static class PlcTags
         }
         else
         {
-            S7Log.Instance?.LogDebug("ReadTags: Error res={Result}", res);
+            var logger = S7Log.Instance;
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug("ReadTags: Error res={Result}", res);
+            }
         }
         return res;
     }
@@ -56,7 +60,11 @@ internal static class PlcTags
         }
         else
         {
-            S7Log.Instance?.LogDebug("WriteTags: Error res={Result}", res);
+            var logger = S7Log.Instance;
+            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                logger.LogDebug("WriteTags: Error res={Result}", res);
+            }
         }
         return res;
     }
@@ -305,8 +313,14 @@ internal static class PlcTags
                 return new PlcTagUInt(name, address, softdatatype);
 
             default:
-                (logger ?? S7Log.Instance)?.LogDebug("ERROR: Unknown softdatatype={SoftDataType} for variable={Name}", softdatatype, name);
-                return null;
+                {
+                    var log = logger ?? S7Log.Instance;
+                    if (log?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        log.LogDebug("ERROR: Unknown softdatatype={SoftDataType} for variable={Name}", softdatatype, name);
+                    }
+                    return null;
+                }
         }
     }
 }

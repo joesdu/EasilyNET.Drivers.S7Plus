@@ -84,17 +84,26 @@ internal sealed partial class S7CommPlusConnection
                 }
                 else
                 {
-                    log.LogDebug("ExploreASAlarms(): stais is not ValueBlobSparseArray");
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("ExploreASAlarms(): stais is not ValueBlobSparseArray");
+                    }
                 }
             }
             else
             {
-                log.LogDebug("ExploreASAlarms(): stais = null");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("ExploreASAlarms(): stais = null");
+                }
             }
         }
         else
         {
-            log.LogDebug("ExploreASAlarms(): staiclass = null");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("ExploreASAlarms(): staiclass = null");
+            }
         }
         #endregion
 
@@ -156,12 +165,18 @@ internal sealed partial class S7CommPlusConnection
                     }
                     else
                     {
-                        log.LogDebug("ExploreASAlarms(): stais is not ValueBlobSparseArray");
+                        if (log.IsEnabled(LogLevel.Debug))
+                        {
+                            log.LogDebug("ExploreASAlarms(): stais is not ValueBlobSparseArray");
+                        }
                     }
                 }
                 else
                 {
-                    log.LogDebug("ExploreASAlarms(): stais = null");
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("ExploreASAlarms(): stais = null");
+                    }
                 }
             }
         }
@@ -261,7 +276,10 @@ internal sealed partial class S7CommPlusConnection
                 // Check if we have the key stored from response data before, to have storage where we can put the Text information in
                 if (!Alarms.ContainsKey(cpualarmid))
                 {
-                    log.LogDebug("BrowseAlarms GetTexts(): CPU Alarm Id {CpuAlarmId:X} is not in dictionary!", cpualarmid);
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("BrowseAlarms GetTexts(): CPU Alarm Id {CpuAlarmId:X} is not in dictionary!", cpualarmid);
+                    }
                     continue;
                 }
                 Alarms[cpualarmid].AlText.LanguageId = languageId;

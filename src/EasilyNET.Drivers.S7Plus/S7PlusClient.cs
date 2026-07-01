@@ -116,10 +116,16 @@ public sealed class S7PlusClient : IAsyncDisposable
                 connection = conn;
                 isConnected = true;
                 resolvedCache.Clear();
-                logger.LogDebug("S7PlusClient: connected to {Host}", host);
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("S7PlusClient: connected to {Host}", host);
+                }
                 return true;
             }
-            logger.LogDebug("S7PlusClient: connect to {Host} failed, res=0x{Res:X}", host, res);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("S7PlusClient: connect to {Host} failed, res=0x{Res:X}", host, res);
+            }
             try { await conn.DisposeAsync().ConfigureAwait(false); } catch { /* ignore */ }
             return false;
         }
@@ -130,7 +136,10 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "S7PlusClient: connect to {Host} error", host);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "S7PlusClient: connect to {Host} error", host);
+            }
             await DisconnectCoreAsync().ConfigureAwait(false);
             return false;
         }
@@ -203,11 +212,17 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "S7PlusClient: resolve symbol ({Address}) error", address);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "S7PlusClient: resolve symbol ({Address}) error", address);
+            }
         }
         if (tag is null)
         {
-            logger.LogDebug("S7PlusClient: symbol ({Address}) not found in PLC", address);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("S7PlusClient: symbol ({Address}) not found in PLC", address);
+            }
         }
         // 缓存成功或失败结果（断开时清空），避免每个读取周期重复解析同一符号
         resolvedCache[address] = tag;
@@ -281,7 +296,10 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "S7PlusClient: read error");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "S7PlusClient: read error");
+            }
             return [];
         }
         finally
@@ -321,7 +339,10 @@ public sealed class S7PlusClient : IAsyncDisposable
         // 断开以触发下次重连，而不是返回一堆 null 并永久卡死。
         if (res != 0)
         {
-            logger.LogDebug("S7PlusClient: ReadValues res=0x{Res:X}", res);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug("S7PlusClient: ReadValues res=0x{Res:X}", res);
+            }
             await DisconnectCoreAsync().ConfigureAwait(false);
             return [];
         }
@@ -510,7 +531,10 @@ public sealed class S7PlusClient : IAsyncDisposable
             var resolved = await ResolveAsync(item.Key, ct).ConfigureAwait(false);
             if (resolved is null)
             {
-                logger.LogDebug("S7PlusClient: cannot write {Symbol}={Value}, address not resolved", item.Key, item.Value);
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("S7PlusClient: cannot write {Symbol}={Value}, address not resolved", item.Key, item.Value);
+                }
                 continue;
             }
             // 使用解析得到的实际数据类型，避免误当作 REAL 处理
@@ -530,7 +554,10 @@ public sealed class S7PlusClient : IAsyncDisposable
             var (res, _) = await conn.WriteValuesAsync(addressList, valueList, ct).ConfigureAwait(false);
             if (res != 0)
             {
-                logger.LogDebug("S7PlusClient: WriteValues res=0x{Res:X}", res);
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug("S7PlusClient: WriteValues res=0x{Res:X}", res);
+                }
                 await DisconnectCoreAsync().ConfigureAwait(false);
                 return false;
             }
@@ -538,7 +565,10 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "S7PlusClient: write error");
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "S7PlusClient: write error");
+            }
             await DisconnectCoreAsync().ConfigureAwait(false);
             return false;
         }
@@ -599,7 +629,10 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            logger.LogDebug(ex, "S7PlusClient: cannot write {Symbol}={Value}", symbol, value);
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "S7PlusClient: cannot write {Symbol}={Value}", symbol, value);
+            }
             return null;
         }
     }

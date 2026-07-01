@@ -83,7 +83,10 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
         catch (Exception ex)
         {
             m_SslActive = false;
-            log.LogDebug(ex, "S7Client - SslActivate: error = {ErrorMessage}", ex.Message);
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug(ex, "S7Client - SslActivate: error = {ErrorMessage}", ex.Message);
+            }
             return S7Consts.errOpenSSL;
         }
         return 0;
@@ -248,7 +251,13 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
             }
         }
         catch (OperationCanceledException) { /* 断开/释放：正常退出 */ }
-        catch (Exception ex) { log.LogDebug(ex, "S7Client - SendLoop: error"); }
+        catch (Exception ex)
+        {
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug(ex, "S7Client - SendLoop: error");
+            }
+        }
     }
 
     private async ValueTask<int> SendIsoPacketAsync(byte[] payload, CancellationToken ct)
@@ -287,7 +296,10 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
                         catch (Exception ex)
                         {
                             // TLS 握手/解密异常（如 PLC 发回 TLS Alert）。记录后停止接收泵，触发上层重连。
-                            log.LogDebug(ex, "S7Client - ReceiveLoop: TLS error = {ErrorMessage}", ex.Message);
+                            if (log.IsEnabled(LogLevel.Debug))
+                            {
+                                log.LogDebug(ex, "S7Client - ReceiveLoop: TLS error = {ErrorMessage}", ex.Message);
+                            }
                             break;
                         }
                     }
@@ -304,7 +316,13 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
             }
         }
         catch (OperationCanceledException) { /* 断开/释放：正常退出 */ }
-        catch (Exception ex) { log.LogDebug(ex, "S7Client - ReceiveLoop: error"); }
+        catch (Exception ex)
+        {
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug(ex, "S7Client - ReceiveLoop: error");
+            }
+        }
     }
 
     private async ValueTask<int> RecvIsoPacketAsync(CancellationToken ct)
@@ -328,7 +346,10 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
                 if (Size < IsoHSize || Size > PDU.Length)
                 {
                     _LastError = S7Consts.errIsoInvalidPDU;
-                    log.LogDebug("S7Client - RecvIsoPacket: invalid TPKT length {Size}, aborting receive loop", Size);
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("S7Client - RecvIsoPacket: invalid TPKT length {Size}, aborting receive loop", Size);
+                    }
                     throw new InvalidDataException($"Invalid TPKT length: {Size}");
                 }
                 if (Size == IsoHSize)

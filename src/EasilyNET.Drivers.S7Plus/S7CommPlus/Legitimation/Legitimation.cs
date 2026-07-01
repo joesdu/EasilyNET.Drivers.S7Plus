@@ -49,7 +49,10 @@ internal sealed partial class S7CommPlusConnection
         var m = IsVersionedRecord.Match(sessionVersionPAOMString);
         if (!m.Success)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: Could not extract firmware version!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: Could not extract firmware version!");
+            }
             return S7Consts.errCliFirmwareNotSupported;
         }
         var deviceVersion = m.Groups[1].Value;   // e.g., "672"
@@ -61,7 +64,10 @@ internal sealed partial class S7CommPlusConnection
             var parts = firmwareVersion.Split('.');
             if (parts.Length < 2 || !int.TryParse(parts[0], out var major) || !int.TryParse(parts[1], out var minor))
             {
-                log.LogDebug("S7CommPlusConnection - Legitimate: Invalid firmware format: {FirmwareVersion}", firmwareVersion);
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - Legitimate: Invalid firmware format: {FirmwareVersion}", firmwareVersion);
+                }
                 return S7Consts.errCliFirmwareNotSupported;
             }
             fwVerNo = (major * 100) + minor;
@@ -73,7 +79,10 @@ internal sealed partial class S7CommPlusConnection
         {
             if (fwVerNo < 209)
             {
-                log.LogDebug("S7CommPlusConnection - Legitimate: Firmware version is not supported!");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - Legitimate: Firmware version is not supported!");
+                }
                 return S7Consts.errCliFirmwareNotSupported;
             }
             if (fwVerNo < 301)
@@ -89,7 +98,10 @@ internal sealed partial class S7CommPlusConnection
         {
             if (fwVerNo < 403)
             {
-                log.LogDebug("S7CommPlusConnection - Legitimate: Firmware version is not supported!");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - Legitimate: Firmware version is not supported!");
+                }
                 return S7Consts.errCliFirmwareNotSupported;
             }
             if (fwVerNo < 407)
@@ -101,14 +113,20 @@ internal sealed partial class S7CommPlusConnection
         {
             if (fwVerNo < 2109)
             {
-                log.LogDebug("S7CommPlusConnection - Legitimate: Firmware version is not supported!");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("S7CommPlusConnection - Legitimate: Firmware version is not supported!");
+                }
                 return S7Consts.errCliFirmwareNotSupported;
             }
             legacyLegitimation = true;
         }
         else
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: Device version is not supported!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: Device version is not supported!");
+            }
             return S7Consts.errCliDeviceNotSupported;
         }
 
@@ -136,7 +154,10 @@ internal sealed partial class S7CommPlusConnection
         var getVarSubstreamedRes = GetVarSubstreamedResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (getVarSubstreamedRes == null)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: GetVarSubstreamedResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: GetVarSubstreamedResponse with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -150,7 +171,10 @@ internal sealed partial class S7CommPlusConnection
         }
         else if (accessLevel > AccessLevel.FullAccess)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: Warning: Access level is not fullaccess but no password set!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: Warning: Access level is not fullaccess but no password set!");
+            }
         }
 
         return 0;
@@ -189,7 +213,10 @@ internal sealed partial class S7CommPlusConnection
         var getVarSubstreamedRes_challenge = GetVarSubstreamedResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (getVarSubstreamedRes_challenge == null)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: getVarSubstreamedRes_challenge with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: getVarSubstreamedRes_challenge with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -205,7 +232,10 @@ internal sealed partial class S7CommPlusConnection
         }
         if (omsSecret == null)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: OMS exporter secret unavailable!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: OMS exporter secret unavailable!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -215,7 +245,10 @@ internal sealed partial class S7CommPlusConnection
 
         if (challenge.Length < 16)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: challenge too short for IV (< 16 bytes)!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: challenge too short for IV (< 16 bytes)!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -249,7 +282,10 @@ internal sealed partial class S7CommPlusConnection
         var setVariableResponse = SetVariableResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (setVariableResponse == null)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: setVariableResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: setVariableResponse with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -257,7 +293,10 @@ internal sealed partial class S7CommPlusConnection
         var errorCode = (short)setVariableResponse.ReturnValue;
         if (errorCode < 0)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: access denied");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: access denied");
+            }
             m_client.Disconnect();
             return S7Consts.errCliAccessDenied;
         }
@@ -333,7 +372,10 @@ internal sealed partial class S7CommPlusConnection
         var getVarSubstreamedRes_challenge = GetVarSubstreamedResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (getVarSubstreamedRes_challenge == null)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: getVarSubstreamedRes_challenge with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: getVarSubstreamedRes_challenge with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -345,7 +387,10 @@ internal sealed partial class S7CommPlusConnection
         challengeResponse = SHA1.HashData(Encoding.UTF8.GetBytes(password));
         if (challengeResponse.Length != challenge.Length)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: challengeResponse.Length != challenge.Length");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: challengeResponse.Length != challenge.Length");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -379,7 +424,10 @@ internal sealed partial class S7CommPlusConnection
         var setVariableResponse = SetVariableResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (setVariableResponse == null)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: setVariableResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: setVariableResponse with Error!");
+            }
             m_client.Disconnect();
             return S7Consts.errIsoInvalidPDU;
         }
@@ -387,7 +435,10 @@ internal sealed partial class S7CommPlusConnection
         var errorCode = (short)setVariableResponse.ReturnValue;
         if (errorCode < 0)
         {
-            log.LogDebug("S7CommPlusConnection - Legitimate: access denied");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("S7CommPlusConnection - Legitimate: access denied");
+            }
             m_client.Disconnect();
             return S7Consts.errCliAccessDenied;
         }

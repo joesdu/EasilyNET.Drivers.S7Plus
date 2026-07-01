@@ -96,7 +96,10 @@ internal sealed partial class S7CommPlusConnection
         var createObjRes = CreateObjectResponse.DeserializeFromPdu(m_ReceivedPDU);
         if (createObjRes == null)
         {
-            log.LogDebug("AlarmSubscription - Create: CreateObjectResponse with Error!");
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("AlarmSubscription - Create: CreateObjectResponse with Error!");
+            }
             return S7Consts.errIsoInvalidPDU;
         }
 
@@ -105,7 +108,10 @@ internal sealed partial class S7CommPlusConnection
             // Save the ObjectId, to modify the existing subscription
             if (createObjRes.ObjectIds == null || createObjRes.ObjectIds.Count <= 0)
             {
-                log.LogDebug("AlarmSubscription - Create: No ObjectIds returned!");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("AlarmSubscription - Create: No ObjectIds returned!");
+                }
                 res = S7Consts.errCliInvalidParams;
             }
         }
@@ -113,7 +119,10 @@ internal sealed partial class S7CommPlusConnection
         {
             // If creating a subscription fails, the object is still created and should be deleted.
             // At least deleting it, gives no error.
-            log.LogDebug("AlarmSubscription - Create: Failed with Returnvalue = 0x{ReturnValue:X8}", createObjRes.ReturnValue);
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("AlarmSubscription - Create: Failed with Returnvalue = 0x{ReturnValue:X8}", createObjRes.ReturnValue);
+            }
             res = S7Consts.errCliInvalidParams;
         }
 
@@ -127,7 +136,10 @@ internal sealed partial class S7CommPlusConnection
 
         for (var i = 1; i <= untilNumberOfAlarms; i++)
         {
-            log.LogDebug("{NewLine}WaitForAlarmNotifications(): *** Loop #{LoopIndex} ***", Environment.NewLine, i);
+            if (log.IsEnabled(LogLevel.Debug))
+            {
+                log.LogDebug("{NewLine}WaitForAlarmNotifications(): *** Loop #{LoopIndex} ***", Environment.NewLine, i);
+            }
             m_LastError = 0;
             await WaitForNotificationAsync(waitTimeout, ct);
             if (m_LastError != 0)
@@ -138,23 +150,35 @@ internal sealed partial class S7CommPlusConnection
             var noti = Notification.DeserializeFromPdu(m_ReceivedPDU);
             if (noti == null)
             {
-                log.LogDebug("Notification == null!");
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("Notification == null!");
+                }
                 return S7Consts.errIsoInvalidPDU;
             }
             else
             {
-                log.LogDebug("Notification: CreditTick={CreditTick} SequenceNumber={SequenceNumber} PLC-Timestamp={Timestamp}.{Millisecond:D03}", noti.NotificationCreditTick, noti.NotificationSequenceNumber, noti.Add1Timestamp, noti.Add1Timestamp.Millisecond);
+                if (log.IsEnabled(LogLevel.Debug))
+                {
+                    log.LogDebug("Notification: CreditTick={CreditTick} SequenceNumber={SequenceNumber} PLC-Timestamp={Timestamp}.{Millisecond:D03}", noti.NotificationCreditTick, noti.NotificationSequenceNumber, noti.Add1Timestamp, noti.Add1Timestamp.Millisecond);
+                }
 
                 var dai = AlarmsDai.FromNotificationObject(noti.P2Objects[0], alarmTextsLanguageId);
                 if (dai != null)
                 {
-                    log.LogDebug("AlarmData: {AlarmData}", dai.ToString());
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("AlarmData: {AlarmData}", dai.ToString());
+                    }
                 }
                 if (noti.NotificationCreditTick >= m_AlarmNextCreditLimit - 1) // Set new limit one tick before it expires, to get a constant flow of data
                 {
                     // CreditTick in Notification is only one byte
                     m_AlarmNextCreditLimit = (short)((m_AlarmNextCreditLimit + creditLimitStep) % 255);
-                    log.LogDebug("--> Credit limit of {CreditTick} reached. SetCreditLimit to {CreditLimit}", noti.NotificationCreditTick, m_AlarmNextCreditLimit);
+                    if (log.IsEnabled(LogLevel.Debug))
+                    {
+                        log.LogDebug("--> Credit limit of {CreditTick} reached. SetCreditLimit to {CreditLimit}", noti.NotificationCreditTick, m_AlarmNextCreditLimit);
+                    }
                     SubscriptionSetCreditLimit(m_AlarmNextCreditLimit);
                 }
             }
@@ -165,7 +189,10 @@ internal sealed partial class S7CommPlusConnection
     public async Task<int> AlarmSubscriptionDeleteAsync(CancellationToken ct = default)
     {
         int res;
-        log.LogDebug("SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}", SessionId2);
+        if (log.IsEnabled(LogLevel.Debug))
+        {
+            log.LogDebug("SubscriptionDelete: Calling DeleteObject for SessionId2={SessionId2:X8}", SessionId2);
+        }
         res = await DeleteObjectAsync(SessionId2, ct).ConfigureAwait(false);
         return res;
     }
