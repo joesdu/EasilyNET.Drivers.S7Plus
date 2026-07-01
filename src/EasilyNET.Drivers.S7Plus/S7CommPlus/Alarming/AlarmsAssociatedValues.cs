@@ -176,7 +176,7 @@ internal sealed class AlarmsAssociatedValues
     }
 }
 
-internal class AssociatedValue(uint typeinfo)
+internal sealed class AssociatedValue(uint typeinfo)
 {
     private bool ValueBool { get; set; }
     private long ValueInt { get; set; }

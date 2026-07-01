@@ -476,7 +476,7 @@ internal sealed class Browser
         };
     }
 
-    internal class Node
+    internal sealed class Node
     {
         public ENodeType NodeType { get; set; } = ENodeType.Undefined;
         public string Name { get; set; } = string.Empty;
@@ -490,7 +490,7 @@ internal sealed class Browser
         public List<Node> Childs { get; private set; } = [];
     }
 
-    internal class VarRoot
+    internal sealed class VarRoot
     {
         public List<Node> Nodes { get; private set; } = [];
     }

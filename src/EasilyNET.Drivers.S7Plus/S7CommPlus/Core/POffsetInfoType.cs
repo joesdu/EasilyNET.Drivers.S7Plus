@@ -88,7 +88,7 @@ internal abstract class POffsetInfoType
     }
 }
 
-internal class POffsetInfoType_FbSfb : POffsetInfoType, IOffsetInfoType_Relation
+internal sealed class POffsetInfoType_FbSfb : POffsetInfoType, IOffsetInfoType_Relation
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;
@@ -152,7 +152,7 @@ internal class POffsetInfoType_FbSfb : POffsetInfoType, IOffsetInfoType_Relation
     }
 }
 
-internal class POffsetInfoType_StructMDim : POffsetInfoType, IOffsetInfoType_Relation, IOffsetInfoType_MDim
+internal sealed class POffsetInfoType_StructMDim : POffsetInfoType, IOffsetInfoType_Relation, IOffsetInfoType_MDim
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;
@@ -267,7 +267,7 @@ internal class POffsetInfoType_StructMDim : POffsetInfoType, IOffsetInfoType_Rel
     }
 }
 
-internal class POffsetInfoType_Struct1Dim : POffsetInfoType, IOffsetInfoType_Relation, IOffsetInfoType_1Dim
+internal sealed class POffsetInfoType_Struct1Dim : POffsetInfoType, IOffsetInfoType_Relation, IOffsetInfoType_1Dim
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;
@@ -350,7 +350,7 @@ internal class POffsetInfoType_Struct1Dim : POffsetInfoType, IOffsetInfoType_Rel
     }
 }
 
-internal class POffsetInfoType_Struct : POffsetInfoType, IOffsetInfoType_Relation
+internal sealed class POffsetInfoType_Struct : POffsetInfoType, IOffsetInfoType_Relation
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;
@@ -408,7 +408,7 @@ internal class POffsetInfoType_Struct : POffsetInfoType, IOffsetInfoType_Relatio
     }
 }
 
-internal class POffsetInfoType_ArrayMDim : POffsetInfoType, IOffsetInfoType_MDim
+internal sealed class POffsetInfoType_ArrayMDim : POffsetInfoType, IOffsetInfoType_MDim
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;
@@ -492,7 +492,7 @@ internal class POffsetInfoType_ArrayMDim : POffsetInfoType, IOffsetInfoType_MDim
     }
 }
 
-internal class POffsetInfoType_Array1Dim : POffsetInfoType, IOffsetInfoType_1Dim
+internal sealed class POffsetInfoType_Array1Dim : POffsetInfoType, IOffsetInfoType_1Dim
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;
@@ -546,7 +546,7 @@ internal class POffsetInfoType_Array1Dim : POffsetInfoType, IOffsetInfoType_1Dim
     }
 }
 
-internal class POffsetInfoType_String : POffsetInfoType
+internal sealed class POffsetInfoType_String : POffsetInfoType
 {
     public ushort UnspecifiedOffsetinfo1;   // This is the max. length of the string
     public ushort UnspecifiedOffsetinfo2;   // max. lengh plus 2 bytes stringheader
@@ -583,7 +583,7 @@ internal class POffsetInfoType_String : POffsetInfoType
     }
 }
 
-internal class POffsetInfoType_Std : POffsetInfoType
+internal sealed class POffsetInfoType_Std : POffsetInfoType
 {
     public override bool HasRelation() { return false; }
     public override bool Is1Dim() { return false; }
@@ -624,7 +624,7 @@ internal class POffsetInfoType_Std : POffsetInfoType
     }
 }
 
-internal class POffsetInfoType_FbArray : POffsetInfoType, IOffsetInfoType_Relation
+internal sealed class POffsetInfoType_FbArray : POffsetInfoType, IOffsetInfoType_Relation
 {
     public ushort UnspecifiedOffsetinfo1;
     public ushort UnspecifiedOffsetinfo2;

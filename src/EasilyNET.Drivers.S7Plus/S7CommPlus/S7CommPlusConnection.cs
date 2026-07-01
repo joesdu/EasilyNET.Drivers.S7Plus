@@ -1401,7 +1401,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         return null;
     }
 
-    internal class BrowseEntry
+    internal sealed class BrowseEntry
     {
         public string Name { get; set; } = string.Empty;
         public uint Softdatatype { get; set; }
@@ -1410,7 +1410,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         public string AccessSequence { get; set; } = string.Empty;
     };
 
-    internal class BrowseData
+    internal sealed class BrowseData
     {
         public string DbName { get; set; } = string.Empty;                                          // Name of the datablock
         public uint DbNumber { get; set; }                                        // Number of the datablock
@@ -1419,7 +1419,7 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         public List<BrowseEntry> Variables { get; private set; } = [];   // Variables inside the datablock
     };
 
-    internal class DatablockInfo
+    internal sealed class DatablockInfo
     {
         public string DbName { get; set; } = string.Empty;                                          // Name of the datablock
         public uint DbNumber { get; set; }                                        // Number of the datablock

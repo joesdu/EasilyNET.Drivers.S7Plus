@@ -2,7 +2,7 @@
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
-internal class GetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
+internal sealed class GetMultiVariablesResponse(byte protocolVersion) : IS7pResponse
 {
     public byte TransportFlags { get; private set; }
     public ulong ReturnValue { get; private set; }

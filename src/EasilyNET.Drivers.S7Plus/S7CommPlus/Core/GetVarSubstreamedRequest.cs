@@ -2,7 +2,7 @@
 // Derived from thomas-v2/S7CommPlusDriver, Copyright (C) 2023 Thomas Wiens. See LICENSE-LGPL-3.0.txt.
 namespace EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
 
-internal class GetVarSubstreamedRequest(byte protocolVersion) : IS7pRequest
+internal sealed class GetVarSubstreamedRequest(byte protocolVersion) : IS7pRequest
 {
     public byte TransportFlags { get; private set; } = 0x34;
 
