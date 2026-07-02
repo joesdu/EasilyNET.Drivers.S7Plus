@@ -2,6 +2,7 @@
 // Copyright (c) 2026 Joe Du. See LICENSE.
 using EasilyNET.Drivers.S7Plus.S7CommPlus.ClientApi;
 using EasilyNET.Drivers.S7Plus.S7CommPlus.Core;
+using System.Text.RegularExpressions;
 
 namespace EasilyNET.Drivers.S7Plus;
 
@@ -30,7 +31,7 @@ namespace EasilyNET.Drivers.S7Plus;
 ///         callers concurrently (they queue), preventing protocol sequence-number corruption on one connection.
 ///     </para>
 /// </remarks>
-public sealed class S7PlusClient : IAsyncDisposable
+public sealed partial class S7PlusClient : IAsyncDisposable
 {
     private const string DateTimeFormat = "yyyy-MM-dd HH:mm:ss";
     private readonly string host;
@@ -534,8 +535,8 @@ public sealed class S7PlusClient : IAsyncDisposable
         {
             return false;
         }
-        var addressList = new List<ItemAddress>(items.Count);
-        var valueList = new List<PValue>(items.Count);
+        // 先解析全部符号，保留 (tag, 用户符号, 值)；解析失败的项跳过
+        var resolvedItems = new List<(PlcTag Tag, string Symbol, string Value)>(items.Count);
         foreach (var item in items)
         {
             var resolved = await ResolveAsync(item.Key, ct).ConfigureAwait(false);
@@ -547,11 +548,42 @@ public sealed class S7PlusClient : IAsyncDisposable
                 }
                 continue;
             }
-            // 使用解析得到的实际数据类型，避免误当作 REAL 处理
-            var pval = CreateWriteValue(resolved, item.Key, item.Value);
+            resolvedItems.Add((resolved, item.Key, item.Value));
+        }
+        if (resolvedItems.Count == 0)
+        {
+            return false;
+        }
+
+        // DTL 写入依赖正确的接口时间戳，而它只能来自一次实际读取（符号解析不会填充）。
+        // 对尚未获得时间戳的 DTL tag 先预读一次以填充，之后同一连接内复用（tag 实例已缓存）。
+        var dtlToPrime = resolvedItems.Select(static x => x.Tag).OfType<PlcTagDTL>().Where(static d => !d.InterfaceTimestampKnown).Distinct().ToList();
+        if (dtlToPrime.Count > 0)
+        {
+            var primeAddrs = dtlToPrime.ConvertAll(static d => d.Address);
+            var (pres, pvalues, perrors) = await conn.ReadValuesAsync(primeAddrs, ct).ConfigureAwait(false);
+            if (pres == 0 && pvalues is not null)
+            {
+                for (var i = 0; i < dtlToPrime.Count && i < pvalues.Count; i++)
+                {
+                    if (pvalues[i] is not null)
+                    {
+                        var err = perrors is not null && i < perrors.Count ? perrors[i] : 0;
+                        dtlToPrime[i].ProcessReadResult(pvalues[i]!, err);
+                    }
+                }
+            }
+        }
+
+        var addressList = new List<ItemAddress>(resolvedItems.Count);
+        var valueList = new List<PValue>(resolvedItems.Count);
+        foreach (var (tag, symbol, value) in resolvedItems)
+        {
+            // 使用解析得到的实际数据类型编码，避免误当作 REAL 处理
+            var pval = CreateWriteValue(tag, symbol, value);
             if (pval is not null)
             {
-                addressList.Add(resolved.Address);
+                addressList.Add(tag.Address);
                 valueList.Add(pval);
             }
         }
@@ -592,6 +624,8 @@ public sealed class S7PlusClient : IAsyncDisposable
             // 字符串类型必须交给 PlcTag 生成带 [maxLen][actLen] 头部的正确线上编码：
             // S7 String 是单字节数组(ValueUSIntArray)、WString 是 16 位字数组(ValueUIntArray)，
             // 直接发 ValueWString 会因类型不符被 PLC 静默拒收（这正是读得出却写不进的根因）。
+            // 字符串与日期/时间类型统一路由到 PlcTag.GetWriteValue()：其编码是读路径解码的逆运算，
+            // 由 PlcTag 保证与 PLC 变量真实结构一致（标量类型仍走下方 softDt 分支，编码等价且更直接）。
             switch (tag)
             {
                 case PlcTagString s:
@@ -600,6 +634,48 @@ public sealed class S7PlusClient : IAsyncDisposable
                 case PlcTagWString ws:
                     ws.Value = value;
                     return ws.GetWriteValue();
+                // DATE：日期（自 1990-01-01 起的天数），接受 "yyyy-MM-dd[ HH:mm:ss]"
+                case PlcTagDate d:
+                    d.Value = ParseDateTimeInvariant(value);
+                    return d.GetWriteValue();
+                // DATE_AND_TIME：BCD 编码，接受 "yyyy-MM-dd HH:mm:ss[.fff]"
+                case PlcTagDateAndTime dt:
+                    dt.Value = ParseDateTimeInvariant(value);
+                    return dt.GetWriteValue();
+                // LDT：自 1970 epoch 起的纳秒数，写入为读路径 (Value/100→ticks) 的逆运算
+                case PlcTagLDT ldt:
+                    ldt.Value = (ulong)((ParseDateTimeInvariant(value) - DateTime.UnixEpoch).Ticks * 100);
+                    return ldt.GetWriteValue();
+                // DTL：接口时间戳必须先由一次读取填充（见 WriteCoreAsync 的预读），否则包可能被 PLC 拒收
+                case PlcTagDTL dtl:
+                    if (!dtl.InterfaceTimestampKnown)
+                    {
+                        throw new InvalidOperationException("DTL write requires a prior read to obtain the interface timestamp.");
+                    }
+                    var dtlDt = ParseDateTimeInvariant(value);
+                    dtl.ValueNanosecond = (uint)(dtlDt.Ticks % TimeSpan.TicksPerSecond * 100);
+                    dtl.Value = dtlDt;
+                    return dtl.GetWriteValue();
+                // TIME_OF_DAY：自 00:00:00 起的毫秒数，接受 "HH:mm:ss[.fff]"
+                case PlcTagTimeOfDay tod:
+                    tod.Value = (uint)(ParseTimeOfDayNs(value) / 1_000_000L);
+                    return tod.GetWriteValue();
+                // LTOD：自 00:00:00 起的纳秒数，接受 "HH:mm:ss[.fffffffff]"
+                case PlcTagLTOD ltod:
+                    ltod.Value = (ulong)ParseTimeOfDayNs(value);
+                    return ltod.GetWriteValue();
+                // TIME：带符号毫秒。接受纯整数(毫秒)或西门子时长字面量，如 "1s500ms"、"-2h"
+                case PlcTagTime t:
+                    t.Value = (int)(ParseDurationNs(value, 1_000_000L) / 1_000_000L);
+                    return t.GetWriteValue();
+                // LTIME：带符号纳秒。接受纯整数(纳秒)或时长字面量，如 "1s500ms"、"1us"
+                case PlcTagLTime lt:
+                    lt.Value = ParseDurationNs(value, 1L);
+                    return lt.GetWriteValue();
+                // S5TIME：毫秒（自动选择时基），接受纯整数(毫秒)或时长字面量，如 "9990ms"、"2s"
+                case PlcTagS5Time s5:
+                    SetS5Time(s5, ParseDurationNs(value, 1_000_000L) / 1_000_000L);
+                    return s5.GetWriteValue();
             }
             return softDt switch
             {
@@ -655,6 +731,119 @@ public sealed class S7PlusClient : IAsyncDisposable
             }
             return null;
         }
+    }
+
+    // 匹配西门子时长字面量的 <数字><单位> 段；单位按 2 字符优先(ns/us/ms)再 1 字符(s/m/h/d)排列，避免 "ms" 被误当作 "m"。
+    [GeneratedRegex(@"(\d+)\s*(ns|us|ms|s|m|h|d)", RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant)]
+    private static partial Regex DurationTokenRegex { get; }
+
+    // 解析 "yyyy-MM-dd[ HH:mm:ss[.fff]]" 等常见格式；失败抛 FormatException 由上层 catch 记录并跳过该项。
+    private static DateTime ParseDateTimeInvariant(string value) =>
+        DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt)
+            ? dt
+            : throw new FormatException($"Cannot parse date/time value: '{value}'");
+
+    // 解析 "HH:mm:ss[.frac]" 为自午夜起的纳秒数；小数部分右补零到 9 位(纳秒)，超出截断。
+    private static long ParseTimeOfDayNs(string value)
+    {
+        var parts = value.Trim().Split(':');
+        if (parts.Length != 3)
+        {
+            throw new FormatException($"Cannot parse time-of-day value: '{value}'");
+        }
+        var h = int.Parse(parts[0], CultureInfo.InvariantCulture);
+        var m = int.Parse(parts[1], CultureInfo.InvariantCulture);
+        var secParts = parts[2].Split('.');
+        var sec = int.Parse(secParts[0], CultureInfo.InvariantCulture);
+        var fracNs = 0L;
+        if (secParts.Length == 2 && secParts[1].Length > 0)
+        {
+            var frac = secParts[1].Length >= 9 ? secParts[1][..9] : secParts[1].PadRight(9, '0');
+            fracNs = long.Parse(frac, CultureInfo.InvariantCulture);
+        }
+        if (h is < 0 or > 23 || m is < 0 or > 59 || sec is < 0 or > 59)
+        {
+            throw new FormatException($"Time-of-day out of range: '{value}'");
+        }
+        return ((h * 3600L) + (m * 60L) + sec) * 1_000_000_000L + fracNs;
+    }
+
+    // 解析带符号纳秒时长：纯整数按 <paramref name="bareUnitNs" /> 单位解释；否则按西门子字面量累加各单位段。
+    private static long ParseDurationNs(string value, long bareUnitNs)
+    {
+        var s = value.Trim();
+        foreach (var prefix in new[] { "S5TIME#", "S5T#", "LTIME#", "LT#", "TIME#", "T#" })
+        {
+            if (s.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                s = s[prefix.Length..];
+                break;
+            }
+        }
+        var negative = s.StartsWith('-');
+        if (negative || s.StartsWith('+'))
+        {
+            s = s[1..];
+        }
+        s = s.Trim();
+        if (s.Length == 0)
+        {
+            throw new FormatException($"Cannot parse duration value: '{value}'");
+        }
+        long total;
+        if (s.All(char.IsDigit))
+        {
+            total = long.Parse(s, CultureInfo.InvariantCulture) * bareUnitNs;
+        }
+        else
+        {
+            var matches = DurationTokenRegex.Matches(s);
+            // 校验无未识别残留（去掉所有单位段与分隔符 '_' 后应为空），避免静默接受 "1s5x" 这类脏输入
+            if (matches.Count == 0 || DurationTokenRegex.Replace(s, "").Replace("_", "").Trim().Length != 0)
+            {
+                throw new FormatException($"Cannot parse duration value: '{value}'");
+            }
+            total = 0;
+            foreach (Match match in matches)
+            {
+                total += long.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture) * UnitToNs(match.Groups[2].Value);
+            }
+        }
+        return negative ? -total : total;
+    }
+
+    private static long UnitToNs(string unit) =>
+        unit.ToLowerInvariant() switch
+        {
+            "d" => 86_400_000_000_000L,
+            "h" => 3_600_000_000_000L,
+            "m" => 60_000_000_000L,
+            "s" => 1_000_000_000L,
+            "ms" => 1_000_000L,
+            "us" => 1_000L,
+            "ns" => 1L,
+            _ => throw new FormatException($"Unknown time unit: {unit}")
+        };
+
+    // 毫秒 → S5Time(时基, 时值)：选最小时基使时值 ≤ 999。时基 0=10ms,1=100ms,2=1s,3=10s。
+    private static void SetS5Time(PlcTagS5Time tag, long ms)
+    {
+        if (ms < 0)
+        {
+            throw new FormatException("S5Time cannot be negative");
+        }
+        int[] baseMs = [10, 100, 1000, 10000];
+        for (var b = 0; b < baseMs.Length; b++)
+        {
+            var val = ms / baseMs[b];
+            if (val <= 999)
+            {
+                tag.TimeBase = (ushort)b;
+                tag.TimeValue = (ushort)val;
+                return;
+            }
+        }
+        throw new ArgumentOutOfRangeException(nameof(ms), "S5Time exceeds max of 9990s");
     }
 
     #endregion

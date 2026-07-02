@@ -1244,6 +1244,11 @@ internal sealed class PlcTagDTL : PlcTag
 
     public ulong DTLInterfaceTimestamp { get; set; } = 0x10ff4ad6dfd5774c; // Oct 23, 2008 16:38:30.406829900 UTC. Should be used from first browse method (or read) and set correctly
 
+    /// <summary>
+    /// 是否已从一次实际读取中获得真实的 <see cref="DTLInterfaceTimestamp" />（写入前必须为真才能保证包正确）。
+    /// </summary>
+    public bool InterfaceTimestampKnown { get; private set; }
+
     public PlcTagDTL(string name, ItemAddress address, uint softdatatype) : base(name, address, softdatatype)
     {
         Value = new DateTime(1970, 1, 1);
@@ -1280,6 +1285,7 @@ internal sealed class PlcTagDTL : PlcTag
                     var year = (barr[0] * 256) + barr[1];
                     ValueNanosecond = ((uint)barr[8] * 16777216) + ((uint)barr[9] * 65536) + ((uint)barr[10] * 256) + barr[11];
                     Value = new DateTime(year, barr[2], barr[3], barr[5], barr[6], barr[7]);
+                    InterfaceTimestampKnown = true;
                     Quality = PlcTagQC.TAG_QUALITY_GOOD;
                 }
                 else
