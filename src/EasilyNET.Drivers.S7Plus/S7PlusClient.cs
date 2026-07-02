@@ -548,7 +548,7 @@ public sealed class S7PlusClient : IAsyncDisposable
                 continue;
             }
             // 使用解析得到的实际数据类型，避免误当作 REAL 处理
-            var pval = CreateWriteValue(item.Key, item.Value, resolved.Datatype);
+            var pval = CreateWriteValue(resolved, item.Key, item.Value);
             if (pval is not null)
             {
                 addressList.Add(resolved.Address);
@@ -584,10 +584,23 @@ public sealed class S7PlusClient : IAsyncDisposable
         }
     }
 
-    private PValue? CreateWriteValue(string symbol, string value, uint softDt)
+    private PValue? CreateWriteValue(PlcTag tag, string symbol, string value)
     {
+        var softDt = tag.Datatype;
         try
         {
+            // 字符串类型必须交给 PlcTag 生成带 [maxLen][actLen] 头部的正确线上编码：
+            // S7 String 是单字节数组(ValueUSIntArray)、WString 是 16 位字数组(ValueUIntArray)，
+            // 直接发 ValueWString 会因类型不符被 PLC 静默拒收（这正是读得出却写不进的根因）。
+            switch (tag)
+            {
+                case PlcTagString s:
+                    s.Value = value;
+                    return s.GetWriteValue();
+                case PlcTagWString ws:
+                    ws.Value = value;
+                    return ws.GetWriteValue();
+            }
             return softDt switch
             {
                 Softdatatype.S7COMMP_SOFTDATATYPE_BOOL or Softdatatype.S7COMMP_SOFTDATATYPE_BBOOL =>
@@ -627,10 +640,7 @@ public sealed class S7PlusClient : IAsyncDisposable
                     new ValueLInt(long.Parse(value, CultureInfo.InvariantCulture)),
                 Softdatatype.S7COMMP_SOFTDATATYPE_ULINT =>
                     new ValueULInt(ulong.Parse(value, CultureInfo.InvariantCulture)),
-                Softdatatype.S7COMMP_SOFTDATATYPE_STRING =>
-                    new ValueWString(value),
-                Softdatatype.S7COMMP_SOFTDATATYPE_WSTRING =>
-                    new ValueWString(value),
+                // STRING / WSTRING 已在上方按 PlcTag 正确编码，这里不再处理。
                 // 不再用 ValueReal 兜底：类型不符的写入 PLC 会静默丢弃，甚至可能误写到相邻变量。
                 // 遇到未支持的类型直接报错，由 catch 记录，避免“假成功”。
                 _ => throw new NotSupportedException(

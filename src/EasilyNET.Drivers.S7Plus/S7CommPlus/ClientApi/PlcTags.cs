@@ -68,7 +68,7 @@ internal static class PlcTags
         return res;
     }
 
-    public static PlcTag? TagFactory(string name, ItemAddress address, uint softdatatype, bool Is1Dim = false, ILogger? logger = null)
+    public static PlcTag? TagFactory(string name, ItemAddress address, uint softdatatype, bool Is1Dim = false, ILogger? logger = null, int stringMaxLength = 0)
     {
         switch (softdatatype)
         {
@@ -140,12 +140,15 @@ internal static class PlcTags
                 return new PlcTagDateAndTime(name, address, softdatatype);
 
             case Softdatatype.S7COMMP_SOFTDATATYPE_STRING:
+                // 单字节 S7 String 最大长度上限 254；用 PLC 上报的真实声明长度写头部，
+                // 未知时（如数组元素）回退默认 254。
+                var s7StrMax = stringMaxLength is > 0 and <= 254 ? (byte)stringMaxLength : (byte)254;
                 if (Is1Dim)
                 {
-                    return new PlcTagStringArray(name, address, softdatatype);
+                    return new PlcTagStringArray(name, address, softdatatype, s7StrMax);
                 }
 
-                return new PlcTagString(name, address, softdatatype);
+                return new PlcTagString(name, address, softdatatype, s7StrMax);
             case Softdatatype.S7COMMP_SOFTDATATYPE_POINTER:
                 return new PlcTagPointer(name, address, softdatatype);
 
@@ -209,7 +212,7 @@ internal static class PlcTags
             case Softdatatype.S7COMMP_SOFTDATATYPE_WCHAR:
                 return new PlcTagWChar(name, address, softdatatype);
             case Softdatatype.S7COMMP_SOFTDATATYPE_WSTRING:
-                return new PlcTagWString(name, address, softdatatype);
+                return new PlcTagWString(name, address, softdatatype, stringMaxLength > 0 ? (ushort)stringMaxLength : (ushort)254);
             //case Softdatatype.S7COMMP_SOFTDATATYPE_VARIANT:
             //-> Variant isn't added inside of the instance-db as a variable!
             case Softdatatype.S7COMMP_SOFTDATATYPE_LTIME:

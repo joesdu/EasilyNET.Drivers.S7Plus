@@ -24,6 +24,12 @@ internal sealed class SetMultiVariablesResponse(byte protocolVersion) : IS7pResp
         // Response Set
         ret += S7p.DecodeUInt64Vlq(buffer, out var _returnValue);
         ReturnValue = _returnValue;
+        if ((ReturnValue & 0x4000000000000000) > 0) // Error Extension
+        {
+            // 消费掉错误对象以保持流对齐（内容留待上层处理），否则后续 ErrorValueList/IntegrityId 解码会错位
+            var errorObject = new PObject();
+            ret += S7p.DecodeObject(buffer, ref errorObject);
+        }
         ErrorValues.Clear();
         ret += S7p.DecodeUInt32Vlq(buffer, out var itemnr);
         while (itemnr > 0)

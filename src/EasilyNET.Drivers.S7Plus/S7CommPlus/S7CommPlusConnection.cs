@@ -489,6 +489,13 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         {
             OnDataReceived = this.OnDataReceived
         };
+        // 将配置的超时同时应用到 TCP 连接与 socket 收发，避免错误 IP 时固定等待 5s 默认值
+        if (timeoutMs > 0)
+        {
+            m_client.ConnTimeout = timeoutMs;
+            m_client.RecvTimeout = timeoutMs;
+            m_client.SendTimeout = timeoutMs;
+        }
 
         m_client.SetConnectionParams(address, 0x0600, Encoding.ASCII.GetBytes("SIMATIC-ROOT-HMI"));
         res = await m_client.ConnectAsync(ct).ConfigureAwait(false);
@@ -1336,7 +1343,9 @@ internal sealed partial class S7CommPlusConnection : IAsyncDisposable
         }
         else
         {
-            return PlcTags.TagFactory(varInfo.Name, new ItemAddress(varInfo.AccessSequence), varType.Softdatatype, is1Dim, log);
+            // 字符串类型带上 PLC 声明的真实最大长度，供写入时正确构造 [maxLen][actLen] 头部
+            var stringMaxLength = varType.OffsetInfoType is POffsetInfoType_String strOi ? strOi.UnspecifiedOffsetinfo1 : 0;
+            return PlcTags.TagFactory(varInfo.Name, new ItemAddress(varInfo.AccessSequence), varType.Softdatatype, is1Dim, log, stringMaxLength);
         }
     }
 

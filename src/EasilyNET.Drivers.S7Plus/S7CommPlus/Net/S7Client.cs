@@ -141,6 +141,13 @@ internal sealed class S7Client : IConnectorCallback, IAsyncDisposable
     public async ValueTask<int> ConnectAsync(CancellationToken cancellationToken = default)
     {
         _LastError = 0;
+        // 同步最新超时到 socket：这些属性可能在构造后（socket 已按默认值建好）才被上层设置
+        if (Socket is not null)
+        {
+            Socket.ConnectTimeout = ConnTimeout;
+            Socket.ReadTimeout = RecvTimeout;
+            Socket.WriteTimeout = SendTimeout;
+        }
         if (!Connected)
         {
             await TCPConnectAsync(cancellationToken).ConfigureAwait(false); // Stage 1: TCP
