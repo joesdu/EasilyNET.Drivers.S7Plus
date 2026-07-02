@@ -74,8 +74,10 @@ foreach (var v in await client.ReadAsync("DB_1.Temperature", "DB_1.Motor.Speed",
 await client.WriteAsync("DB_1.Setpoint", "42");
 await client.WriteAsync(new Dictionary<string, string>
 {
-    ["DB_1.Enable"] = "1",
-    ["DB_1.Name"]   = "Hello"
+    ["DB_1.Enable"]    = "1",              // Bool
+    ["DB_1.Name"]      = "Hello",          // String / WString
+    ["DB_1.StartTime"] = "2026-07-02 08:30:00", // Date / DateAndTime / DTL / LDT
+    ["DB_1.Delay"]     = "1s500ms"         // Time / LTime / S5Time（也可写纯数字）
 });
 
 // 带取消令牌
@@ -145,15 +147,17 @@ var values = await client.ReadAsync(["DB_1.Temperature"], cts.Token);
 | 浮点 Real / LReal | 小数点固定为 `.`（不受区域影响） | `3.14` |
 | 字符串 / 字符 | 纯文本 | `Hello` / `A` |
 | 日期/日期时间 Date、DateAndTime、DTL、LDT | `yyyy-MM-dd HH:mm:ss` | `2026-06-23 12:34:56` |
-| 时刻 TimeOfDay / LTOD | `HH:mm:ss` | `12:34:56` |
-| 时长 Time / LTime / S5Time | 可读时长 | `1d_2h_30m` |
+| 时刻 TimeOfDay / LTOD | `HH:mm:ss[.fff]` | `12:34:56` |
+| 时长 Time / LTime / S5Time | 可读时长（LTime 带 `LT#` 前缀，S5Time 归一为毫秒/秒） | `1d_02h_30m`、`LT#1s_500ms`、`9990ms` |
 | 数组 | 元素以英文逗号拼接 | `10,20,30` |
 
 ---
 
 ## 6. 写值说明（重要）
 
-**可写类型**：Bool、Byte、USInt、SInt、Char、WChar、Word、Int、UInt、DWord、DInt、UDInt、LWord、LInt、ULInt、Real、LReal、String、WString。
+**可写类型**：Bool、Byte、USInt、SInt、Char、WChar、Word、Int、UInt、DWord、DInt、UDInt、LWord、LInt、ULInt、Real、LReal、String、WString，以及日期/时间全系：Date、DateAndTime、DTL、LDT、TimeOfDay、LTOD、Time、LTime、S5Time。写入按解析到的**真实类型**编码。
+
+### 标量与字符串
 
 | 类型 | 写入字符串 |
 |---|---|
@@ -161,9 +165,28 @@ var values = await client.ReadAsync(["DB_1.Temperature"], cts.Token);
 | 整数 | 十进制，如 `1231`、`-5`（超范围写入失败并记录日志） |
 | Real / LReal | `3.14`（小数点用 `.`） |
 | Char / WChar | 单字符，取首字符 |
-| String / WString | 纯文本 |
+| String / WString | 纯文本（按变量声明的最大长度校验，超长则跳过） |
 
-**暂不支持写入**（会记录“Unsupported write data type”并跳过，不会误写）：Date、Time、S5Time、TimeOfDay、DateAndTime、DTL、LTime、LTOD、LDT、Pointer、Any 以及**所有数组类型**。
+### 日期 / 时间
+
+写入格式与[读取输出](#读取取值输出格式)保持一致，支持“读出 → 写回”的往返。
+
+| 类型 | 写入字符串 | 示例 |
+|---|---|---|
+| Date | `yyyy-MM-dd`（可带时间，时间部分忽略） | `2026-07-02` |
+| DateAndTime | `yyyy-MM-dd HH:mm:ss[.fff]` | `2026-07-02 08:30:00.250` |
+| DTL | `yyyy-MM-dd HH:mm:ss[.fffffffff]` | `2026-07-02 08:30:00.123456789` |
+| LDT | `yyyy-MM-dd HH:mm:ss` | `2026-07-02 08:30:00` |
+| TimeOfDay | `HH:mm:ss[.fff]` | `08:30:00.250` |
+| LTOD | `HH:mm:ss[.fffffffff]` | `08:30:00.000000001` |
+| Time | 纯整数（毫秒）或时长字面量 | `1500`、`1s500ms`、`-2h`、`1d2h3m4s5ms` |
+| LTime | 纯整数（纳秒）或时长字面量 | `250`、`LT#1s500ms`、`1us` |
+| S5Time | 纯整数（毫秒）或时长字面量（自动选时基） | `9990ms`、`2s` |
+
+- **时长字面量**支持单位 `d`/`h`/`m`/`s`/`ms`/`us`/`ns`、可选正负号、`_` 分隔与 `T#`/`LT#`/`S5T#` 前缀；含无法识别的残留（如 `1s5x`）会被拒绝并跳过，不会误写。
+- **DTL 特别说明**：DTL 写入需要正确的“接口时间戳”，该值只能从一次实际读取中获得。驱动在写入 DTL 前会**自动预读一次**该变量以取得时间戳（同一连接内每个 DTL 变量仅预读一次）；若预读失败，该 DTL 写入项会被安全跳过而非发出错误的包。
+
+**暂不支持写入**（会记录“Unsupported write data type”并跳过，不会误写）：Pointer、Any、Struct 以及**所有数组类型**。
 
 > **哪些点“写了不生效”**：由 PLC 程序/系统逻辑每周期覆盖的变量（如定时器实例的输出位 `.Q`、功能块实例的输出参数 `FB_DB.OUT`），与上位机 RO/RW 标记无关——`WriteValues` 返回 `0` 但值很快被覆盖；要外部控制应改写其**输入参数**或预设值而非输出。
 
@@ -173,8 +196,9 @@ var values = await client.ReadAsync(["DB_1.Temperature"], cts.Token);
 
 - **按需解析**：连接成功后**不会**全量浏览整个 PLC，仅解析实际用到的符号，显著缩短大型程序的连接准备时间。
 - **批量读取**：多个点按 PLC 协商的单请求最大点数自动分块。
+- **超时控制**：`TimeoutMs` 同时作用于 TCP 连接、socket 收发与单次请求等待；连接不可达的地址会按配置超时快速返回，而非等待操作系统默认的数十秒。
 - **自动重连**：通信异常 / 读写超时 / PLC 主动终止会话时，`Read`/`Write` 会断开连接；下次调用自动重连并重新解析符号。
-- **资源释放**：断开/重连及 `Dispose` 时完整释放底层连接（`S7Client`/Socket/Mutex 等）。
+- **资源释放**：断开/重连及 `Dispose` 时完整释放底层连接（`S7Client`/Socket 等，全异步）。
 - **线程安全 / 并发**：全部 I/O（连接/读/写/断开）通过同一异步信号量串行化，可安全地从多处并发 `await`——调用会自动排队，无需调用方手动串行化（避免同一连接的并发请求导致序列号错乱）。
 
 ---
@@ -183,8 +207,9 @@ var values = await client.ReadAsync(["DB_1.Temperature"], cts.Token);
 
 - 协议实现基于开源项目 **[thomas-v2/S7CommPlusDriver](https://github.com/thomas-v2/S7CommPlusDriver)**（**LGPL-3.0**），并做了以下增强：
   - TLS 层由原生 OpenSSL P/Invoke 迁移为纯托管 **BouncyCastle**（TLS 1.3 + AES-GCM，支持 RFC 5705 `EXPERIMENTAL_OMS` 密钥导出）。
-  - 连接层加入事务锁、按需符号解析（移除全量浏览）、自动剥离上位机路径前缀。
-  - 取值按真实类型解码、写值按真实类型编码、完善资源释放。
+  - 全链路真异步（异步接收/发送泵 + 异步信号量串行化，移除后台线程与忙等待），并发调用自动排队。
+  - 按需符号解析（移除全量浏览）、自动剥离上位机路径前缀、`TimeoutMs` 覆盖连接与 socket I/O。
+  - 取值按真实类型解码、写值按变量真实结构编码：String/WString 用带 `[maxLen][actLen]` 头的字节/字数组、日期时间全系（含 DTL 自动预读接口时间戳）均可写；完善资源释放。
 ### 许可（双许可 Dual License）
 
 本仓库按组件分别授权，每个源文件以 `SPDX-License-Identifier` 头声明其许可：
